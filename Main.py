@@ -6,8 +6,6 @@ Created on Wed Feb  2 10:31:43 2022
 """
 import os
 os.chdir("C:/Users/olive/Desktop/Speciale/Kode/Scripts") # change directory to where the files are located!
-#test hallo
-import Stats
 
 import numpy as np
 import h5py
