@@ -26,6 +26,9 @@ from PIL import Image
 import shutil
 import re
 import pandas as pd
+from osgeo import gdal
+from osgeo import osr
+#from skimage.feature import peak_local_max
 # Function that reads the raw data from an HDF5 file
 
 def movefiles(input_path,output_path):
@@ -36,7 +39,7 @@ def movefiles(input_path,output_path):
         filename=os.path.basename(os.getcwd()+f)
         dest=os.path.join(destination,filename)
         shutil.move(source,dest)
-        return print("Done")
+    return print("Done")
 
 
 def read_raw_radardata(file_path):   
@@ -79,9 +82,12 @@ def dbz_to_R_marshallpalmer(dbz_data):
 
 # Make a raster that the data can be inserted into. Produces a tiff file.
 def data_array_to_raster(data_array, tif_path):
-    transform = rasterio.transform.from_origin(-422114.8, 469381, 500, 500) # define coordinates for the DMI grid
+    #transform = rasterio.transform.from_origin(-422114.8, 469381, 500, 500) # define coordinates for the DMI grid
+    transform = rasterio.transform.from_origin(-174865, 263131, 500, 500) # define coordinates for the DMI grid
     proj4string_dmistere = '+proj=stere +ellps=WGS84 +lat_0=56 +lon_0=10.5666 +lat_ts=56' # The raw data's projection
-    
+    #transform = rasterio.transform.from_origin(7.582964884675271,58.32806110474353,0.008519049771461227, 0.004481469249843848) # define coordinates for the DMI grid
+    #proj4string_dmistere = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs " # The raw data's projection
+
     # Produce raster with rasterio package
     with rasterio.open(tif_path, 'w', driver='GTiff',
                        height = data_array.shape[0], width = data_array.shape[1],
@@ -90,7 +96,7 @@ def data_array_to_raster(data_array, tif_path):
                        transform=transform) as file:
         file.write(data_array, 1)
     
-    raster_array = rxr.open_rasterio('./data_array.tif').squeeze() # load data
+    raster_array = rxr.open_rasterio('./{}'.format(tif_path),tif_path).squeeze() # load data
     
     with rxr.open_rasterio(tif_path) as file:
         raster_array = file.squeeze()
@@ -99,6 +105,22 @@ def data_array_to_raster(data_array, tif_path):
     #os.remove('./data_array.tif')
     
     return(raster_array)
+
+def data_to_raster_RADAR(data_array,lon,lat,path):
+    xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
+    nrows,ncols = np.shape(data_array)
+    xres = (xmax-xmin)/float(ncols)
+    yres = (ymax-ymin)/float(nrows)
+    geotransform=(xmin,xres,0,ymax,0, -yres)   
+
+    output_raster = gdal.GetDriverByName('GTiff').Create(path,ncols, nrows, 1 ,gdal.GDT_Float32)  # Open the file
+    output_raster.SetGeoTransform(geotransform)  # Specify its coordinates
+    srs = osr.SpatialReference()                 # Establish its coordinate encoding
+    srs.ImportFromProj4('+proj=stere +ellps=WGS84 +lat_0=56 +lon_0=10.5666 +lat_ts=56')                     # This one specifies WGS84 lat long.
+                                             
+    output_raster.SetProjection( srs.ExportToWkt() )   # Exports the coordinate system
+    output_raster.GetRasterBand(1).WriteArray(data_array)   # Writes my array to the raster
+    output_raster.FlushCache()
 
 # [Not recommended to use this function!] Function that reprojects a raster
 # Be careful with this function. It can reproject a raster, but it changes the shape of the array and thus the data resolution!
@@ -122,12 +144,15 @@ def remove_values_below(surface_field, threshold):
     return(surface_field)
 
 def aggregate_data(Data,threshold_value): #Aggregate data for every hour
-    rain_total=np.zeros((len(Data),1728,1984),float)
+    #rain_total=np.zeros((len(Data),1728,1984),float)
+    rain_total=np.zeros((len(Data),1500-412,1175-494),float)
     for i in range(0,len(Data)):
         for j in range(0,len(Data[i])):
             raw=read_raw_radardata(Data[i][j])
             dbz=raw_radardata_to_dbz(raw)
-            rain=dbz_to_R_marshallpalmer(dbz)/60 #Divide by 60 to get correct intensity
+            dbz_smalldom=dbz[412:1500,494:1175]
+            #rain=dbz_to_R_marshallpalmer(dbz)/60
+            rain=dbz_to_R_marshallpalmer(dbz_smalldom)/60#Divide by 60 to get correct intensity
             rain_total[i]=rain_total[i]+pd.DataFrame(rain).fillna(0)
         rain_total[i]=remove_values_below(rain_total[i],threshold_value)
         #radar_plot(rain_total[i],radar_lons,radar_lats,world_map_file,"%s/%s/%s - %s:00 UTC"%(Data[i][0][-9:-7],Data[i][0][-11:-9],Data[i][0][-15:-11],Data[i][j][-7:-5]),Data[i][j])
@@ -159,44 +184,7 @@ def radar_plot(rain_array, lons, lats, world_map_file, plot_title,file_input):
     #plt.savefig(save_name,bbox_inches='tight')
     #plt.close()
     
-def plot_together(rain_array,NWP_data, radar_lons, radar_lats, nwp_lons, nwp_lats, world_map_file, plot_title_radar,plot_title_nwp,save_name,save_path):
-    
-    world_map = gpd.read_file(world_map_file)
-    
-    # create custom color map
-    cmap = colors.ListedColormap(["#85E3E4", '#42D8D8', '#42AFD8', '#4282D8', "#FFE600", '#FFAF00', '#FF5050', '#FF1A1A', "#BD0000", "#8C0000"])
-    #boundaries = [0, .5, 1, 2, 3, 4, 5, 7.5, 10, 15, 20]
-    boundaries = [0, 2, 5, 10, 15, 20, 25, 35, 50, 75, 100]
-    norm = colors.BoundaryNorm(boundaries, cmap.N, clip=True)
-    
-    # Make plot
-    #world_map.plot(facecolor="lightgrey")
-    fig,axs=plt.subplots(1,2,sharex=True,sharey=True,gridspec_kw={"width_ratios":[1,1.09]},figsize=(15,15))
-    fig.text(0.5,0.04,"Longitude",ha='center')
-    fig.text(0.04,0.5,"Latitude",va='center',rotation='vertical')
-    #fig.tight_layout(pad=3.0)
-    world_map.plot(facecolor="lightgrey",ax=axs[0])
-    pcm=axs[0].pcolor(radar_lons, radar_lats, rain_array, shading = "auto", alpha=1, cmap=cmap, norm=norm)
-    axs[0].set_xlim(7,15)
-    axs[0].set_ylim(54.5,58)
-    axs[0].title.set_text(plot_title_radar)
-    world_map.plot(facecolor="lightgrey",ax=axs[1])
-    pcm=axs[1].pcolor(nwp_lons, nwp_lats, NWP_data, shading = "auto", alpha=1, cmap=cmap, norm=norm)
-    axs[1].set_xlim(7,15)
-    axs[1].set_ylim(54.5,58)
-    axs[1].title.set_text(plot_title_nwp)
-    plt.tick_params('y',labelleft=False)
-    #axs[1].set_yticks([])
-    cbar = fig.colorbar(pcm,ax=axs[1],fraction=0.040, pad=0.04)
-    cbar.ax.set_ylabel('Rainfall intensity [mm/h]', rotation=90)
-    plt.subplots_adjust(wspace=0.05,hspace=0)
-    plt.show()
-    #plt.title(plot_title)
-    save_name=save_path%str(save_name[-1:])[-17:-7]
-    if os.path.isfile(save_name):
-        os.remove(save_name)
-    plt.savefig(save_name,bbox_inches='tight')
-    #plt.close()
+
 
     
 def make_gif(path_to_png,path_placing_gif,duration):
@@ -206,6 +194,9 @@ def make_gif(path_to_png,path_placing_gif,duration):
         new_frame=Image.open(i)
         frames.append(new_frame)
     imageio.mimsave(path_placing_gif,frames,'GIF',duration=duration)
+    
+
+
 
 ########################
 ########################
@@ -218,15 +209,15 @@ def make_gif(path_to_png,path_placing_gif,duration):
 #movefiles("./Radar/Data/nowcast.dk.com.*/interpolated.*.h5","./Radar/Data/Interpolations") #Move interpolated files for all folders to store them in one place
     
 
-file_path = './Radar/Data/nowcast.dk.com.202107261200/interpolated.dk.com.202107261150.h5' # example file
+#file_path = './Radar/Data/nowcast.dk.com.202107261200/interpolated.dk.com.202107261150.h5' # example file
 #tif_path_rain = file_path[:-3] + "_rain" + ".tif" # file path for a tif file that will be generated
 
 # this is how you access the where, how, what attributes of raw file
 #coordinates_info = list(test_data["where"].attrs.items())
 
-raw_data = read_raw_radardata(file_path) # read raw data
-dbz_data = raw_radardata_to_dbz(raw_data) # convert to dBZ values
-rain_data = dbz_to_R_marshallpalmer(dbz_data) # convert to rainfall intensity
+#raw_data = read_raw_radardata(file_path) # read raw data
+#dbz_data = raw_radardata_to_dbz(raw_data) # convert to dBZ values
+#rain_data = dbz_to_R_marshallpalmer(dbz_data) # convert to rainfall intensity
 
 # make numpy arrays with coordinates
 x_radar_coords = np.arange(-421364.8 - 500, 569635.2 + 500, 500) # need to add and subtract 500 because np.arange does not include end points
@@ -242,7 +233,7 @@ radar_lons, radar_lats = project_raster_coords(x_radar_coords, y_radar_coords, d
 world_map_file = "C:/Users/olive/OneDrive/Desktop/Speciale/Kode/pygrib_functionality/pygrib_functionality/world_map_cut/world_map_background.shp" # file path to a shapefile with outline of Denmark
 
 #start_time=time.time()
-radar_plot(rain_data, radar_lons, radar_lats, world_map_file, "%s/%s/%s - %s:%s UTC"%(file_path[-9:-7],file_path[-11:-9],file_path[-15:-11],file_path[-7:-5],file_path[-5:-3]),file_path)
+#radar_plot(rain_data, radar_lons, radar_lats, world_map_file, "%s/%s/%s - %s:%s UTC"%(file_path[-9:-7],file_path[-11:-9],file_path[-15:-11],file_path[-7:-5],file_path[-5:-3]),file_path)
 #print(time.time()-start_time)
 
 #######################################################
@@ -264,7 +255,7 @@ radar_plot(rain_data, radar_lons, radar_lats, world_map_file, "%s/%s/%s - %s:%s 
 
 
 
-#agg_list=aggregate_data(Myfiles_hr)
+#agg_list=aggregate_data(Myfiles_hr,0.5)
 
 
 #make_gif("./Radar/Data/Pics/*_hr.png",'./Radar/Data/Pics/png_to_gif_hr.gif',1)

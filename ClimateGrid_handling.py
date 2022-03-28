@@ -4,8 +4,8 @@ Created on Mon Jan 24 14:25:07 2022
 
 @author: olive
 """
-import os
-os.chdir("C:/Users/olive/OneDrive/Desktop/Speciale/Kode") 
+#import os
+#os.chdir("C:/Users/olive/OneDrive/Desktop/Speciale/Kode") 
 
 import gzip
 import pandas as pd
@@ -77,8 +77,8 @@ def rain_obs_restructure(data):
     for i in range(0,np.shape(df_lon)[0]):
         #print(i,np.shape(df_lon)[0])
         for j in range(0, np.shape(df_lon)[1]):
-            if any(data.index[((df['N coor']==df_lat[:,0][i]) & (data['E coor']==df_lon[0,:][j]))])==True:
-                indice_input=data.index[((df['N coor']==df_lat[:,0][i]) & (data['E coor']==df_lon[0,:][j]))][0]
+            if any(data.index[((data['N coor']==df_lat[:,0][i]) & (data['E coor']==df_lon[0,:][j]))])==True:
+                indice_input=data.index[((data['N coor']==df_lat[:,0][i]) & (data['E coor']==df_lon[0,:][j]))][0]
                 rain_obs.iloc[i,j]=data.iloc[indice_input,:]['rain']
             else:
               pass
@@ -133,7 +133,7 @@ def make_gif(path_to_png,path_placing_gif,duration):
 ##############################################################################
 
 
-os.chdir("C:/Users/olive/Desktop/Speciale/Kode/Rain_gauge") # change directory to where the files are located!
+#os.chdir("C:/Users/olive/Desktop/Speciale/Kode/Rain_gauge") # change directory to where the files are located!
 
 #df=open_gzip('./Precip2011/2011/01/01/20110101_0100.txt.gz')
 
@@ -141,21 +141,21 @@ os.chdir("C:/Users/olive/Desktop/Speciale/Kode/Rain_gauge") # change directory t
 #file_import='.Data/Precip2021.tar.gz'
 #extract_tar(file_import) #Only need to do this once
 
-file_gz="./Data/2021/07/26/20210726_1500.txt.gz"
+#file_gz="./Data/2021/07/26/20210726_1500.txt.gz"
 
-df=open_gzip(file_gz)
+#df=open_gzip(file_gz)
 
-rainobs_crs=CRS("epsg:25832")
-plotting_crs=CRS("epsg:4326")
-tst_transformer=Transformer.from_crs(rainobs_crs, plotting_crs, always_xy = True)
-new_coords = tst_transformer.transform(np.array(df.iloc[:,2]), np.array(df.iloc[:,1]))
-df['E coor new'],df['N coor new']=new_coords[0],new_coords[1]
-
-
-precip_lons,precip_lats=project_raster_coords(np.unique(df.iloc[:,1]),np.unique(df.iloc[:,2]),rainobs_crs,plotting_crs)
+#rainobs_crs=CRS("epsg:25832")
+#plotting_crs=CRS("epsg:4326")
+#tst_transformer=Transformer.from_crs(rainobs_crs, plotting_crs, always_xy = True)
+#new_coords = tst_transformer.transform(np.array(df.iloc[:,2]), np.array(df.iloc[:,1]))
+#df['E coor new'],df['N coor new']=new_coords[0],new_coords[1]
 
 
-rainobs=rain_obs_restructure(df)
+#precip_lons,precip_lats=project_raster_coords(np.unique(df.iloc[:,1]),np.unique(df.iloc[:,2]),rainobs_crs,plotting_crs)
+
+
+#rainobs=rain_obs_restructure(df)
       
 
 
@@ -169,7 +169,7 @@ rainobs=rain_obs_restructure(df)
 
 
 
-Myfiles_raingauge=[i for i in glob.glob("./Data/2021/07/26/20210726_*.txt.gz") if int(i[-11:-7])>1200 and int(i[-11:-7])<2200]
+#Myfiles_raingauge=[i for i in glob.glob("./Data/2021/07/26/20210726_*.txt.gz") if int(i[-11:-7])>1200 and int(i[-11:-7])<2200]
 
 world_map_file = "C:/Users/olive/OneDrive/Desktop/Speciale/Kode/pygrib_functionality/pygrib_functionality/world_map_cut/world_map_background.shp" # file path to a shapefile with outline of Denmark
 

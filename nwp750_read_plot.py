@@ -18,6 +18,11 @@ import time
 import pandas as pd
 from PIL import Image
 import imageio
+import rasterio
+import rioxarray as rxr
+from osgeo import gdal
+from osgeo import osr
+from pyproj import Transformer
 
 
 def read_parameter_info(parameter_list, param_number):
@@ -65,6 +70,13 @@ def Output_rain_NWP(file_path,removal_threshold):
         extracted_field[i]['values']=remove_values_below(extracted_field[i]["values"],removal_threshold)
     return extracted_field
 
+def project_raster_coords_NWP(x_coords, y_coords, orig_crs, dest_crs):
+    xx, yy = x_coords, y_coords
+    transformer = Transformer.from_crs(orig_crs, dest_crs, always_xy = True)
+    new_coords = transformer.transform(xx, yy)
+    x_new, y_new = new_coords[0], new_coords[1]
+    return(x_new, y_new)
+
 def nwp_plot(rain_array, lons, lats, plot_title,file,coordinates,file_input):
     ''' Function that plots gridded NWP data'''
     world_map = gpd.read_file(file)
@@ -79,6 +91,33 @@ def nwp_plot(rain_array, lons, lats, plot_title,file,coordinates,file_input):
     plt.pcolor(lons, lats, rain_array, shading = "auto", alpha=0.8, cmap=cmap, norm=norm)
     cbar = plt.colorbar(fraction=0.046, pad=0.04)
     cbar.ax.set_ylabel('Rainfall intensity [mm/h]', rotation=90)
+    plt.xlim(7,15) # longitudes for Denmark (for a zoomed plot)
+    plt.ylim(54.5,58) # lattitudes for Denmark (for a zoomed plot)
+    #plt.xlim(coordinates[0],coordinates[1])
+    #plt.ylim(coordinates[2],coordinates[3])
+    plt.xlabel("Longitude")
+    plt.ylabel("Latitude")
+    plt.title(plot_title)
+    #save_name="./Pics/%s.png"%file_input[-3:]
+    #if os.path.isfile(save_name):
+    #    os.remove(save_name)
+    #plt.savefig(save_name,bbox_inches='tight')
+    #plt.close()
+    
+def nwp_plot_tst(rain_array, lons, lats, plot_title,file,coordinates,file_input):
+    ''' Function that plots gridded NWP data'''
+    world_map = gpd.read_file(file)
+    
+    # create custom color map
+    cmap = colors.ListedColormap(["#85E3E4", '#42D8D8', '#42AFD8', '#4282D8', "#FFE600", '#FFAF00', '#FF5050', '#FF1A1A', "#BD0000", "#8C0000"])
+    #boundaries = [0, .5, 1, 2, 3, 4, 5, 7.5, 10, 15, 20]
+    boundaries = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
+    norm = colors.BoundaryNorm(boundaries, cmap.N, clip=True)
+    
+    world_map.plot(facecolor="lightgrey")
+    plt.pcolor(lons, lats, rain_array, shading = "auto", alpha=0.8, cmap=cmap, norm=norm)
+    cbar = plt.colorbar(fraction=0.046, pad=0.04)
+    cbar.ax.set_ylabel('Fraction', rotation=90)
     #plt.xlim(7,15) # longitudes for Denmark (for a zoomed plot)
     #plt.ylim(54.5,58) # lattitudes for Denmark (for a zoomed plot)
     plt.xlim(coordinates[0],coordinates[1])
@@ -86,10 +125,10 @@ def nwp_plot(rain_array, lons, lats, plot_title,file,coordinates,file_input):
     plt.xlabel("Longitude")
     plt.ylabel("Latitude")
     plt.title(plot_title)
-    save_name="./Pics/%s.png"%file_input[-3:]
-    if os.path.isfile(save_name):
-        os.remove(save_name)
-    plt.savefig(save_name,bbox_inches='tight')
+    #save_name="./Pics/%s.png"%file_input[-3:]
+    #if os.path.isfile(save_name):
+    #    os.remove(save_name)
+    #plt.savefig(save_name,bbox_inches='tight')
     #plt.close()
     
 
@@ -105,7 +144,7 @@ def open_n_plot(Data,removal_threshold,world_file,coordinates):
         values_plot=pd.DataFrame(attributes['values']).fillna(0)-previous_accum
         values_plot=values_plot.replace(0,np.nan)
         values_plot=remove_values_below(values_plot,removal_threshold)
-        #nwp_plot(values_plot,attributes['lons'],attributes['lats'],"Rainfall field %2d - %s:00 UTC"%(attributes['date'],int(Data[i][-6:-4])+int(Data[i][-1:])),world_map_file,coordinates,Data[i])
+        nwp_plot(values_plot,attributes['lons'],attributes['lats'],"Rainfall field %2d - %s:00 UTC"%(attributes['date'],int(Data[i][-6:-4])+int(Data[i][-1:])),world_map_file,coordinates,Data[i])
         previous_accum=pd.DataFrame(attributes['values']).fillna(0)
         print(time.time()-start)
     return values_plot
@@ -127,6 +166,46 @@ def open_not_plot(Data,removal_threshold,world_file,coordinates):
     return rain 
 
 
+# # Make a raster that the data can be inserted into. Produces a tiff file.
+# def data_array_to_raster_nwp(data_array, tif_path):
+#     #transform = rasterio.transform.from_origin(-180518.4109, 225640.8505, 750, 750) # define coordinates for the DMI grid
+#     #proj4string_dmistere = '+proj=stere +ellps=WGS84 +lat_0=56 +lon_0=10.5666 +lat_ts=56' # The raw data's projection
+#     transform = rasterio.transform.from_origin(7.515165,57.989784,0.011752375714285715,0.006986698412698415) # define coordinates for the DMI grid
+#     proj4string_dmistere = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs " # The raw data's projection
+
+#     # Produce raster with rasterio package
+#     with rasterio.open(tif_path, 'w', driver='GTiff',
+#                        height = data_array.shape[0], width = data_array.shape[1],
+#                        count=1, dtype=str(data_array.dtype),
+#                        crs=proj4string_dmistere,
+#                        transform=transform) as file:
+#         file.write(data_array, 1)
+    
+#     raster_array = rxr.open_rasterio('./{}'.format(tif_path),tif_path).squeeze() # load data
+    
+#     with rxr.open_rasterio(tif_path) as file:
+#         raster_array = file.squeeze()
+    
+#     #raster_array.close()
+#     #os.remove('./data_array.tif')
+    
+#     return(raster_array)
+
+def data_to_raster_NWP(data_array,lon,lat,path):
+    xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
+    nrows,ncols = np.shape(data_array)
+    xres = (xmax-xmin)/float(ncols)
+    yres = (ymax-ymin)/float(nrows)
+    geotransform=(xmin,xres,0,ymax,0, -yres)   
+
+    output_raster = gdal.GetDriverByName('GTiff').Create(path,ncols, nrows, 1 ,gdal.GDT_Float32)  # Open the file
+    output_raster.SetGeoTransform(geotransform)  # Specify its coordinates
+    srs = osr.SpatialReference()                 # Establish its coordinate encoding
+    srs.ImportFromEPSG(4326)                     # This one specifies WGS84 lat long.
+                                             
+    output_raster.SetProjection( srs.ExportToWkt() )   # Exports the coordinate system
+    output_raster.GetRasterBand(1).WriteArray(np.flip(np.array(data_array),axis=0))   # Writes my array to the raster
+    output_raster.FlushCache()
 
 #############################################################################
 #############################################################################
@@ -145,7 +224,7 @@ def open_not_plot(Data,removal_threshold,world_file,coordinates):
 #extracted_field = read_parameter_info(parameter_list, 58) #either 13 or 29 if file is not an exact hour 
 #np.nanmax(extracted_field['values'])
 
-world_map_file = "C:/Users/olive/OneDrive/Desktop/Speciale/Kode/pygrib_functionality/pygrib_functionality/world_map_cut/world_map_background.shp" # file path to a shapefile with outline of Denmark
+#world_map_file = "C:/Users/olive/OneDrive/Desktop/Speciale/Kode/pygrib_functionality/pygrib_functionality/world_map_cut/world_map_background.shp" # file path to a shapefile with outline of Denmark
 
 
 
