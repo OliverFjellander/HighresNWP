@@ -28,6 +28,7 @@ import re
 import pandas as pd
 from osgeo import gdal
 from osgeo import osr
+from pygeoprocessing import zonal_statistics
 #from skimage.feature import peak_local_max
 # Function that reads the raw data from an HDF5 file
 
@@ -105,6 +106,7 @@ def data_array_to_raster(data_array, tif_path):
     #os.remove('./data_array.tif')
     
     return(raster_array)
+    
 
 def data_to_raster_RADAR(data_array,lon,lat,path):
     xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
@@ -121,6 +123,12 @@ def data_to_raster_RADAR(data_array,lon,lat,path):
     output_raster.SetProjection( srs.ExportToWkt() )   # Exports the coordinate system
     output_raster.GetRasterBand(1).WriteArray(data_array)   # Writes my array to the raster
     output_raster.FlushCache()
+
+def produce_zonalstat_radar(data,lons,lats,files):
+    tif_path ="./Tiff_files/"+files[0][-15:-5] + "_radar" + ".tif" # file path for a tif file that will be generated
+    data_to_raster_RADAR(data,lons,lats,tif_path)
+    zs=zonal_statistics((tif_path,1),"C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/25gridradar.shp",ignore_nodata=False,polygons_might_overlap=False)
+    return zs
 
 # [Not recommended to use this function!] Function that reprojects a raster
 # Be careful with this function. It can reproject a raster, but it changes the shape of the array and thus the data resolution!
@@ -142,6 +150,21 @@ def project_raster_coords(x_coords, y_coords, orig_crs, dest_crs):
 def remove_values_below(surface_field, threshold):
     surface_field[surface_field <= threshold] = np.nan
     return(surface_field)
+
+def aggregate_data_tst(Data,threshold_value): #Aggregate data for every hour
+    #rain_total=np.zeros((len(Data),1728,1984),float)
+    rain_total=np.zeros((1500-412,1175-494),float)
+    #rain_total=np.zeros((len(Data),1115-892,1015-715),float)
+    for j in range(0,len(Data)):
+        raw=read_raw_radardata(Data[j])
+        dbz=raw_radardata_to_dbz(raw)
+        dbz_smalldom=dbz[412:1500,494:1175]
+        rain=dbz_to_R_marshallpalmer(dbz_smalldom)/60 #Divide by 60 to get correct intensity
+        rain_total=rain_total+pd.DataFrame(rain).fillna(0)
+    rain_total=remove_values_below(rain_total,threshold_value)
+        #radar_plot(rain_total[i],radar_lons,radar_lats,world_map_file,"%s/%s/%s - %s:00 UTC"%(Data[i][0][-9:-7],Data[i][0][-11:-9],Data[i][0][-15:-11],Data[i][j][-7:-5]),Data[i][j])
+    return rain_total
+
 
 def aggregate_data(Data,threshold_value): #Aggregate data for every hour
     #rain_total=np.zeros((len(Data),1728,1984),float)
@@ -253,11 +276,8 @@ world_map_file = "C:/Users/olive/OneDrive/Desktop/Speciale/Kode/pygrib_functiona
 #rain_tst=remove_values_below(rain_tst,0.5)
 #radar_plot(rain_tst,radar_lons,radar_lats,world_map_file,"%s/%s/%s - %s:00 UTC"%(Myfiles_hr[1][0][-9:-7],Myfiles_hr[1][0][-11:-9],Myfiles_hr[1][0][-15:-11],Myfiles_hr[1][j][-7:-5]),Myfiles_hr[1][j])
 
-
-
 #agg_list=aggregate_data(Myfiles_hr,0.5)
 
 
 #make_gif("./Radar/Data/Pics/*_hr.png",'./Radar/Data/Pics/png_to_gif_hr.gif',1)
-
 

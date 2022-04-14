@@ -7,6 +7,7 @@ Created on Mon Jan 24 14:25:07 2022
 #import os
 #os.chdir("C:/Users/olive/OneDrive/Desktop/Speciale/Kode") 
 
+import os
 import gzip
 import pandas as pd
 import numpy as np
@@ -21,6 +22,11 @@ import tarfile
 import glob
 from PIL import Image
 import imageio
+from pygeoprocessing import zonal_statistics
+from osgeo import gdal
+from osgeo import osr
+import rasterio
+import rioxarray as rxr
 
 
 ##############################################################################
@@ -45,10 +51,21 @@ def raingauge_obs(Data):
         tst_transformer=Transformer.from_crs(rainobs_crs, plotting_crs, always_xy = True)
         new_coords = tst_transformer.transform(np.array(file.iloc[:,2]), np.array(file.iloc[:,1]))
         file['E coor new'],file['N coor new']=new_coords[0],new_coords[1]
-        precip_lons,precip_lats=project_raster_coords(np.unique(file.iloc[:,1]),np.unique(file.iloc[:,2]),rainobs_crs,plotting_crs)
+        precip_lons,precip_lats=project_raingauge_coords(file.iloc[:,1],file.iloc[:,2],rainobs_crs,plotting_crs)
         df[i]=rain_obs_restructure(file)
     return df,precip_lons,precip_lats
 
+def raingauge_obs_orig(Data):    
+    df=np.zeros((len(Data),354,328))
+    for i in range(0,len(Data)):
+        file=open_gzip(Data[i])
+        rainobs_crs=CRS("epsg:25832")
+        tst_transformer=Transformer.from_crs(rainobs_crs, rainobs_crs, always_xy = True)
+        new_coords = tst_transformer.transform(np.array(file.iloc[:,2]), np.array(file.iloc[:,1]))
+        file['E coor new'],file['N coor new']=new_coords[0],new_coords[1]
+        precip_lons,precip_lats=project_raingauge_coords(file.iloc[:,1],file.iloc[:,2],rainobs_crs,rainobs_crs)
+        df[i]=rain_obs_restructure(file)
+    return df,precip_lons,precip_lats
 
 def open_gzip(file_to_open):
     with gzip.open(file_to_open,'rt') as fin:        
@@ -63,8 +80,8 @@ def open_gzip(file_to_open):
     data['rain']=[float(file[0][i].split()[3]) for i in range(0,len(file.index))]
     return data
 
-def project_raster_coords(x_coords, y_coords, orig_crs, dest_crs):
-    xx, yy = np.meshgrid(x_coords, y_coords)
+def project_raingauge_coords(x_coords, y_coords, orig_crs, dest_crs):
+    xx, yy = np.meshgrid(np.unique(x_coords), np.unique(y_coords))
     transformer = Transformer.from_crs(orig_crs, dest_crs, always_xy = True)
     new_coords = transformer.transform(xx, yy)
     x_new, y_new = new_coords[0], new_coords[1]
@@ -73,16 +90,18 @@ def project_raster_coords(x_coords, y_coords, orig_crs, dest_crs):
 def rain_obs_restructure(data):
     rain_obs=pd.DataFrame(np.zeros((np.shape(np.unique(data.iloc[:,2]))[0],(np.shape(np.unique(data.iloc[:,1]))[0]))))
     df_lon,df_lat=np.meshgrid(np.unique(data.iloc[:,1]),np.unique(data.iloc[:,2])) #uses this to be able to compare the numbers in the datafram
-    start=time.time()
+    #start=time.time()
     for i in range(0,np.shape(df_lon)[0]):
         #print(i,np.shape(df_lon)[0])
+        #start_small=time.time()
         for j in range(0, np.shape(df_lon)[1]):
             if any(data.index[((data['N coor']==df_lat[:,0][i]) & (data['E coor']==df_lon[0,:][j]))])==True:
                 indice_input=data.index[((data['N coor']==df_lat[:,0][i]) & (data['E coor']==df_lon[0,:][j]))][0]
                 rain_obs.iloc[i,j]=data.iloc[indice_input,:]['rain']
             else:
               pass
-    print("time used:",(time.time()-start))
+        #print("Time for indice input:",(time.time()-start_small))
+    #print("time used:",(time.time()-start))
     rain_obs[rain_obs==0]=np.nan
     return rain_obs
     
@@ -111,12 +130,84 @@ def raingauge_plot(rain_array, lons, lats, world_map_file, plot_title,file_input
     plt.xlabel("Longitude")
     plt.ylabel("Latitude")
     plt.title(plot_title)
-    save_name="./Pics/%s.png"%file_input[-20:-7]
-    if os.path.isfile(save_name):
-        os.remove(save_name)
-    plt.savefig(save_name,bbox_inches='tight')
+    #save_name="./Pics/%s.png"%file_input[0][-20:-7]
+    #if os.path.isfile(save_name):
+    #    os.remove(save_name)
+    #plt.savefig(save_name,bbox_inches='tight')
     #plt.close()
     
+# def data_to_raster_rg(data_array,lon,lat,path):
+#     xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
+#     nrows,ncols = np.shape(data_array)
+#     xres = (xmax-xmin)/float(ncols)
+#     yres = (ymax-ymin)/float(nrows)
+#     geotransform=(xmin,xres,0,ymax,0, -yres)   
+
+#     output_raster = gdal.GetDriverByName('GTiff').Create(path,ncols, nrows, 1 ,gdal.GDT_Float32)  # Open the file
+#     output_raster.SetGeoTransform(geotransform)  # Specify its coordinates
+#     srs = osr.SpatialReference()                 # Establish its coordinate encoding
+#     srs.ImportFromEPSG(4326)                     # This one specifies WGS84 lat long.
+                                             
+#     output_raster.SetProjection( srs.ExportToWkt() )   # Exports the coordinate system
+#     output_raster.GetRasterBand(1).WriteArray(np.flip(np.array(data_array),axis=0))   # Writes my array to the raster
+#     output_raster.FlushCache()
+
+# Make a raster that the data can be inserted into. Produces a tiff file.
+def data_array_to_raster_rg(data_array, tif_path):
+    #transform = rasterio.transform.from_origin(-422114.8, 469381, 500, 500) # define coordinates for the DMI grid
+    transform = rasterio.transform.from_origin(441500, 6049500, 1000, -1000) # define coordinates for the DMI grid
+    proj4string_dmistere = "epsg:25832"  # The raw data's projection
+    #transform = rasterio.transform.from_origin(7.582964884675271,58.32806110474353,0.008519049771461227, 0.004481469249843848) # define coordinates for the DMI grid
+    #proj4string_dmistere = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs " # The raw data's projection
+
+    # Produce raster with rasterio package
+    with rasterio.open(tif_path, 'w', driver='GTiff',
+                       height = data_array.shape[0], width = data_array.shape[1],
+                       count=1, dtype=str(data_array.dtype),
+                       crs=proj4string_dmistere,
+                       transform=transform) as file:
+        file.write(data_array, 1)
+    
+    raster_array = rxr.open_rasterio('./{}'.format(tif_path),tif_path).squeeze() # load data
+    
+    with rxr.open_rasterio(tif_path) as file:
+        raster_array = file.squeeze()
+    
+    #raster_array.close()
+    #os.remove('./data_array.tif')
+    
+    return(raster_array)
+
+def produce_zonalstat_rg(data,lons,lats,filename):
+    zs=[]
+
+    for i in range(0,len(data)):
+        tif_path="./Tiff_files/"+filename[i][-20:-9]+'_raingauge'+'.tif'
+        data_array_to_raster_rg(data[i],tif_path)
+
+        #raster_radar=rasterio.open(tif_path_radar,masked=False)
+        #raster_nwp=rasterio.open(tif_path_nwp,masked=False)
+
+        zs.append(zonal_statistics((tif_path,1),"C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_DMI_raingauge.shp",ignore_nodata=False,polygons_might_overlap=False))
+        #print(time.time()-start) 
+    return zs
+
+def zonalstat_rg(data_zonalstat):
+    data_ts=np.empty((0,len(data_zonalstat)),np.float64)
+    for i in range(0,len(data_zonalstat)):
+        if np.isnan(data_zonalstat[i]['sum']):
+            data_ts=np.append(data_ts,0.0)
+        else:
+            data_ts=np.append(data_ts,data_zonalstat[i]['sum']/data_zonalstat[i]['count'])
+    return data_ts
+
+def zone_to_2d_raingauge(z_stat):
+    grid_2d=[[] for _ in range(len(z_stat))]
+    for i in range(0,len(z_stat)):
+        grid_2d[i]=np.reshape(zonalstat_rg(z_stat[i]),(125,157))
+        grid_2d[i][grid_2d[i]==0]=np.nan
+        grid_2d[i][grid_2d[i]==0]=np.nan
+    return grid_2d
     
 
     

@@ -23,7 +23,8 @@ import rioxarray as rxr
 from osgeo import gdal
 from osgeo import osr
 from pyproj import Transformer
-
+import csv
+import fiona
 
 def read_parameter_info(parameter_list, param_number):
     ''' Takes a number for the parameter of interest, 
@@ -91,8 +92,8 @@ def nwp_plot(rain_array, lons, lats, plot_title,file,coordinates,file_input):
     plt.pcolor(lons, lats, rain_array, shading = "auto", alpha=0.8, cmap=cmap, norm=norm)
     cbar = plt.colorbar(fraction=0.046, pad=0.04)
     cbar.ax.set_ylabel('Rainfall intensity [mm/h]', rotation=90)
-    plt.xlim(7,15) # longitudes for Denmark (for a zoomed plot)
-    plt.ylim(54.5,58) # lattitudes for Denmark (for a zoomed plot)
+    plt.xlim(6,16) #7,15 longitudes for Denmark (for a zoomed plot)
+    plt.ylim(53,59) #54,5 , 58 lattitudes for Denmark (for a zoomed plot)
     #plt.xlim(coordinates[0],coordinates[1])
     #plt.ylim(coordinates[2],coordinates[3])
     plt.xlabel("Longitude")
@@ -144,7 +145,7 @@ def open_n_plot(Data,removal_threshold,world_file,coordinates):
         values_plot=pd.DataFrame(attributes['values']).fillna(0)-previous_accum
         values_plot=values_plot.replace(0,np.nan)
         values_plot=remove_values_below(values_plot,removal_threshold)
-        nwp_plot(values_plot,attributes['lons'],attributes['lats'],"Rainfall field %2d - %s:00 UTC"%(attributes['date'],int(Data[i][-6:-4])+int(Data[i][-1:])),world_map_file,coordinates,Data[i])
+        nwp_plot(values_plot,attributes['lons'],attributes['lats'],"Rainfall field %2d - %s:00 UTC"%(attributes['date'],int(Data[i][-6:-4])+int(Data[i][-1:])),world_file,coordinates,Data[i])
         previous_accum=pd.DataFrame(attributes['values']).fillna(0)
         print(time.time()-start)
     return values_plot
@@ -211,9 +212,27 @@ def data_to_raster_NWP(data_array,lon,lat,path):
 #############################################################################
 
 
-#os.chdir("C:/Users/olive/Desktop/Speciale/Kode/NWP750") # change directory to where the files are located!
+# #os.chdir("C:/Users/olive/Desktop/Speciale/Kode/NWP750") # change directory to where the files are located!
+# NEA_file="./pygrib_functionality/pygrib_functionality/sNEA2104302103"
+# tst_nea=pygrib.open(NEA_file)
+# nea_param=tst_nea.read()
+# extracted_nea=read_parameter_info(nea_param,58)
+# extracted_nea['values']=remove_values_below(extracted_nea["values"],0.5)
+
+# # with rasterio.open(NEA_file) as r:
+# #     print(r.crs.to_proj4())
+
+# nea_lats=extracted_nea['lats'][255:455,535:692]
+# nea_lons=extracted_nea['lons'][255:455,535:692]
 
 
+
+# np.savetxt("./cropnea.csv",np.array((nea_lons.flatten())),delimiter=",")
+# np.savetxt("./cropnea1.csv",np.array(nea_lats.flatten()),delimiter=",")
+# np.savetxt("./cropnea2.csv",np.array(np.repeat(1,np.size(nea_lats))),delimiter=",")
+
+    
+    
 #file_grib="./2021072612/00115"
 #file_grib="./2021072612/002"
 #pygrib_file = pygrib.open(file_grib)
@@ -233,8 +252,7 @@ def data_to_raster_NWP(data_array,lon,lat,path):
 
 # make a plot!
 #coordinates=(7,15,54.5,58)
-#nwp_plot(extracted_field['values'], extracted_field['lons'], extracted_field['lats'], "Rainfall field %2d - %s"%(extracted_field['date'],file_grib[-4:len(file_grib)]),world_map_file,coordinates,file_grib)
-#nwp_plot(extracted_field['values'], lons, lats, "Rainfall field %2d"%(extracted_field['date']),world_map_file2)
+#nwp_plot(extracted_nea['values'], extracted_nea['lons'], extracted_nea['lats'], "test",world_map_file,1,1)
 
 
 #Myfiles=[i for i in glob.glob("./2021072612/*") if len(i)<17]
