@@ -65,6 +65,7 @@ from osgeo import osr
 from pygeoprocessing import zonal_statistics
 from skimage import data, io, filters
 from scipy.ndimage.measurements import center_of_mass
+from datetime import datetime
 start_start=time.time()
 
 ###########################################################################
@@ -83,58 +84,65 @@ nwp_crs = 'epsg:25832' # the CRS projection you want to plot the data in
 #FILES
 ###############################################################################
 #2.5km common grid
-#grid_NWP=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_DMI_NWP.shp")
-
-#coor_grid="C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/DMI_grid_coor1.shp"
-#coor_grid_NWP="C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_NWP_coor.shp"
-
-#grid_25_coor=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/DMI_grid_coor1.shp")
-#grid_25_coor_NWP=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_NWP_coor.shp")
-#grid_NWP['ycoor']=grid_25_coor_NWP['ycoord']
-#grid_NWP['xcoor']=grid_25_coor_NWP['xcoord']
-
-#grid_small=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_northernzealand.shp")
-#grid_small_coor=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/coor_nothernzealand.shp")
-#grid_small_nwp=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_northernzealand_nwp.shp")
-#grid_small_nwp['ycoor']=grid_small_coor['ycoord']
-#grid_small_nwp['xcoor']=grid_small_coor['xcoord']
-
-#grid_coor=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_op.shp") #In original rotated lat/lon
-#grid=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/25gridnwp.shp") #In original rotated lat/lon
-
-#grid_radar=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/25gridradar.shp")
-#date_time=str(2021072612)
+grid_tst=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/25grid_25832.shp")
+grid_25832=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/Centroids_25832.shp")
+coor_4326=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/coor_4326.shp")
+grid_4326=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/25grid_4326.shp")
+date_time=str(2021072612)
 #date_time=str(2021080708)
-month="05"
+####################################################
+#Retrieve:
+cloudburst_days=np.genfromtxt("./cloudburstdays.txt",dtype='str')
+severe_days=np.genfromtxt("./severedays.txt",dtype='str')
 
-file_radar=glob.glob("./Radar/2021-%s/*"%month)
-file_short=[file_radar[s][-15:-7] for s in range(0,len(file_radar))]
 
-remove_dup=[item for item, count in collections.Counter(file_short).items() if count > 1439]
-date_times=[]
-for i in range(0,len(remove_dup)):
-    for j in range(0,24,1):
-        if len(str(j))==1:
-            hour=str(0)+str(j)
-        else:
-            hour=str(j)
-        date_times.append(remove_dup[i]+hour)
+cloudburst_dates=precipitation_days(cloudburst_days)
+severe_dates=precipitation_days(severe_days)
 
+
+
+
+
+
+#########################################################
 #NWP
-#extract_tar('./NWP750/Data0708/dk7502021070810.tar.gz')
-# coordinates_nwp=(7,15,54.5,58)
-# Myfiles_nwp=[i for i in glob.glob("./NWP750/%s/*"%date_time) if len(i)<24]
-# extracted_nwp_coor=Output_rain_NWP(Myfiles_nwp,threshold_value) 
-# extracted_nwp=open_not_plot(Myfiles_nwp,threshold_value,world_map_file,coordinates_nwp)
+#extract_tar('./NWP750/dk7502021070810.tar.gz')
+#extract_tar('./NWP750/dk7502021050101.pkl.gz')
+coordinates_nwp=(7,15,54.5,58)
+Myfiles_nwp=[i for i in glob.glob("./NWP750/%s/*"%date_time) if len(i)<24]
+extracted_nwp_coor=Output_rain_NWP(Myfiles_nwp,threshold_value) 
+extracted_nwp=open_not_plot(Myfiles_nwp,threshold_value,world_map_file,coordinates_nwp)
 
-# lons_nwp=extracted_nwp_coor[1]['lons']
-# lats_nwp=extracted_nwp_coor[1]['lats']
+lons_nwp=extracted_nwp_coor[1]['lons']
+lats_nwp=extracted_nwp_coor[1]['lats']
+
+
 
 #data_to_raster_NWP(np.repeat(1,np.size(lons_nwp)).reshape(630,700),lons_nwp,lats_nwp,"./nwp_area.tif")        
-   
+#np.savetxt("./high_res.csv",np.transpose(np.vstack((np.array((lons_nwp.flatten())),np.array(lats_nwp.flatten()),np.array(np.repeat(1,np.size(lons_nwp)))))),delimiter=",")
+Files_NEA=[i[-12:-4] for i in glob.glob("./25grid/NEA/*")] #what is available?
+
+all_nwp=[i for i in glob.glob("./NWP750/pickled_data/pickled_data/*")]
+Myfiles_nwp=[]
+for i in range(0,len(all_nwp)):
+    if all_nwp[i][-15:-7] in Files_NEA and all_nwp[i][-15:-7] in cloudburst_dates:
+        Myfiles_nwp.append(all_nwp[i])
+    else:
+        pass
+
+for i in range(0,1):
+    start=time.time()
+    file=Myfiles_nwp[i]
+    save_name=Myfiles_nwp[i][-15:-7]
+    f=gzip.open(file,'rb')
+    df=pickle.load(f,encoding='bytes')
+    f.close()
+    df=remove_values_below(df,0.5)
+    df=df.transpose(2,0,1)   
 
 ###############################################################################
 #Radar
+
 #Radar coordinates
 x_radar_coords = np.arange(-421364.8 - 500, 569635.2 + 500, 500) # need to add and subtract 500 because np.arange does not include end points
 y_radar_coords = np.arange(468631 + 500, -394369 - 500, -500)
@@ -142,6 +150,7 @@ y_radar_coords = np.arange(468631 + 500, -394369 - 500, -500)
 #####Limit radar
 radar_lons, radar_lats = project_raster_coords(x_radar_coords, y_radar_coords, dmi_stere_crs, dmi_stere_crs)
 radar_lons_4326,radar_lats_4326=project_raster_coords(x_radar_coords, y_radar_coords, dmi_stere_crs, plotting_crs)
+#np.savetxt("./radar.csv",np.transpose(np.vstack((np.array((radar_lons_4326.flatten())),np.array(radar_lats_4326.flatten()),np.array(np.repeat(1,np.size(radar_lons_4326)))))),delimiter=",")
 
 #data_to_raster_RADAR(np.repeat(1,np.size(radar_lats_4326)).reshape(1728,1984),radar_lons_4326,radar_lats_4326,"./radar_area.tif")
 
@@ -151,18 +160,16 @@ radar_lons_4326=radar_lons_4326[412:1500,494:1175]
 radar_lats_4326=radar_lats_4326[412:1500,494:1175]
 
 
+
+
 #movefiles("./Radar/Data0708/nowcast.dk.com.*/interpolated.*.h5","./Radar/Data0708/Interpolations") #Move interpolated files for all folders to store them in one place
-#Myfiles_radar=[i for i in glob.glob("./Radar/Data%s/Interpolations/*"%date_time[-6:-2])]
-Myfiles_radar=[i for i in glob.glob("./Radar/2021-%s/*.%s*"%(month,date_times[0]))]
+Myfiles_radar=[i for i in glob.glob("./Radar/Data%s/Interpolations/*"%date_time[-6:-2])]
 Myfiles_radar_hr=np.array_split(Myfiles_radar[1-len(Myfiles_radar):],len(Myfiles_radar[1-len(Myfiles_radar):])/60) #The first is removed because the belongs to previous timeframe
 print("before radar aggregation takes:", time.time()-start_start)
 start=time.time()
 Radar_agg=aggregate_data(Myfiles_radar_hr,threshold_value)
 print("Radar aggregations takes:", time.time()-start)
 
-#start_radar=time.time()
-#radar_tst=aggregate_data_tst(Myfiles_radar_hr,threshold_value)
-#print(time.time()-start_radar)
 
 #tif_path_radar = Myfiles_radar_hr[0][0][-15:-5] + "_rain_radar" + ".tif" # file path for a tif file that will be generated
 #data_to_raster_RADAR(Radar_agg[0],radar_lons,radar_lats,tif_path_radar)
@@ -174,30 +181,139 @@ save_name=str(Myfiles_radar_hr[0][0])[-15:-5]
 #    tif_path_nwp="./Tiff_files/"+Myfiles_nwp[i+1][-3:]+'_NWPtst'+'.tif'
 #    data_to_raster_NWP(extracted_nwp[i+1],lons_nwp,lats_nwp,tif_path_nwp)
 
-#fig,ax=plt.subplots(1,1,figsize=(10,10))
-#grid.plot(ax=ax,facecolor="none",edgecolor="yellow")
-#show(raster_radar,ax=ax,title="radar")
-#plt.show()
+################################################################################
+############################PLOTTING ALL THREEE################################
+def produce_gifs(dates,preciptype):
+    start=time.time()
+    os.chdir("C:/Users/olive/Desktop/Speciale/Kode")
+    lons_25=np.array(coor_4326['xcoor']).reshape((156,184))
+    lats_25=np.array(coor_4326['ycoor']).reshape((156,184))
+
+    
+    
+    Files_NEA=[i[-12:-4] for i in glob.glob("./25grid/NEA/*")] #what is available?
+    all_nwp=[i for i in glob.glob("./NWP750/pickled_data/pickled_data/*")]
+    Myfiles_nwp=[]
+    for i in range(0,len(all_nwp)):
+        if all_nwp[i][-15:-7] in Files_NEA and all_nwp[i][-15:-7] in dates:
+            Myfiles_nwp.append(all_nwp[i])
+        else:
+            pass
+    
+        
+    #for i in range(0,len(dates)):
+    df_tst=[]
+    for i in range(0,len(Myfiles_nwp)):
+        date=Myfiles_nwp[i][-15:-7]
+        
+        file=Myfiles_nwp[i]
+        save_name=Myfiles_nwp[i][-15:-7]
+        f=gzip.open(file,'rb')
+        df_nwp=pickle.load(f,encoding='bytes')
+        f.close()
+        df_nwp=remove_values_below(df_nwp,0.5)
+        df_nwp=df_nwp.transpose(2,0,1)  
+
+
+        Myfiles_radar=[i for i in glob.glob("./Radar/2021-%s/*.20%s*"%(date[2:4],date[:-2]))]
+        if len(Myfiles_radar)<1439:
+            continue
+        else:
+            Myfiles_radar_hr=np.array_split(Myfiles_radar,24) #The first is removed because the belongs to previous timeframe
+            Radar_agg=aggregate_data(Myfiles_radar_hr,threshold_value)
+
+
+        load_NEA=np.loadtxt("./25grid/NEA/nea_2d_%s.txt"%date)
+        orig_nea=load_NEA.reshape(load_NEA.shape[0],load_NEA.shape[1] // 184, 184)
+
+        for timestep in range(0,len(orig_nea)): 
+            if (int(date[-2:])+timestep)>23:
+                continue
+            else:
+                radar_format="Radar \n %s/%s/%s - %s:00 UTC"%(str('20')+date[:2],date[2:4],date[4:6],str(int(date[-2:])+timestep))
+                nwp_format="NWP750 \n %s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(timestep))
+                nea_format="NWP2500 \n %s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(timestep))    
+                plot_all(Radar_agg[int(date[-2:])+timestep],df_nwp[timestep],orig_nea[timestep],radar_lons_4326, radar_lats_4326,lons_nwp,lats_nwp,lons_25, lats_25,world_map_file,radar_format, nwp_format, nea_format, str(date),str(timestep),preciptype)
+        print("Time for %s:"%i,time.time()-start)
+        make_gif("./Pics/%s/%s/*.png"%(preciptype,date[2:6]),'./Pics/%s/gifs/%s.gif'%(preciptype,date),2)
+
+tst=produce_gifs(cloudburst_dates,"cloudburst")
+produce_gifs(severe_dates,"severerain")
+##############################################################################
+####################Producing pictures to the report##########################
+lons_25=np.array(coor_4326['xcoor']).reshape((156,184))
+lats_25=np.array(coor_4326['ycoor']).reshape((156,184))
+
+    
+    
+Files_NEA=[i[-12:-4] for i in glob.glob("./25grid/NEA/*")] #what is available?
+all_nwp=[i for i in glob.glob("./NWP750/pickled_data/pickled_data/*")]
+Myfiles_nwp=[]
+for i in range(0,len(all_nwp)):
+    if all_nwp[i][-15:-7] in Files_NEA and all_nwp[i][-15:-7] in severe_dates:
+        Myfiles_nwp.append(all_nwp[i])
+    else:
+        pass
+    
+date=Myfiles_nwp[23][-15:-7]
+date1=Myfiles_nwp[24][-15:-7]
+        
+file=Myfiles_nwp[23]
+file1=Myfiles_nwp[24]
+f=gzip.open(file,'rb')
+f1=gzip.open(file1,'rb')
+df_nwp=pickle.load(f,encoding='bytes')
+df_nwp1=pickle.load(f1,encoding='bytes')
+f.close()
+f1.close()
+df_nwp=remove_values_below(df_nwp,0.5)
+df_nwp1=remove_values_below(df_nwp1,0.5)
+df_nwp=df_nwp.transpose(2,0,1)  
+df_nwp1=df_nwp1.transpose(2,0,1) 
+
+
+Myfiles_radar=[i for i in glob.glob("./Radar/2021-%s/*.20%s*"%(date[2:4],date[:-2]))]
+Myfiles_radar_hr=np.array_split(Myfiles_radar,24) #The first is removed because the belongs to previous timeframe
+Radar_agg=aggregate_data(Myfiles_radar_hr,threshold_value)
+
+
+
+load_NEA=np.loadtxt("./25grid/NEA/nea_2d_%s.txt"%date)
+load_NEA1=np.loadtxt("./25grid/NEA/nea_2d_%s.txt"%date1)
+
+orig_nea=load_NEA.reshape(load_NEA.shape[0],load_NEA.shape[1] // 184, 184)
+orig_nea1=load_NEA1.reshape(load_NEA1.shape[0],load_NEA1.shape[1] // 184, 184)
+
+
+radar_format="Radar \n %s/%s/%s - %s:00 UTC"%(str('20')+date[:2],date[2:4],date[4:6],str(int(date[-2:])+3))
+radar_format1="%s/%s/%s - %s:00 UTC"%(str('20')+date[:2],date[2:4],date[4:6],str(int(date[-2:])+6))
+radar_format2="%s/%s/%s - %s:00 UTC"%(str('20')+date1[:2],date1[2:4],date1[4:6],str(int(date1[-2:])+3))
+nwp_format="DK750 \n %s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(3))
+nwp_format1="%s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(6))
+nwp_format2="%s/%s/%s - %s:00 + %s UTC"%(str('20')+date1[:2],date1[2:4],date1[4:6],date1[-2:],str(3))
+nea_format="NEA \n %s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(3))    
+nea_format1="%s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(6))    
+nea_format2="%s/%s/%s - %s:00 + %s UTC"%(str('20')+date1[:2],date1[2:4],date1[4:6],date1[-2:],str(3))    
+plot_all_tst(Radar_agg[int(date[-2:])+3],Radar_agg[int(date[-2:])+6],Radar_agg[int(date[-2:])+9],df_nwp[3],df_nwp[6],df_nwp1[3],orig_nea[3],orig_nea[6],orig_nea1[3],radar_lons_4326, radar_lats_4326,lons_nwp,lats_nwp,lons_25, lats_25,world_map_file,radar_format,radar_format1,radar_format2, nwp_format,nwp_format1,nwp_format2, nea_format,nea_format1,nea_format2, str(date),str(timestep),"cloudburst")
 
 ###############################################################################
 ##Rain gauge
-# Myfiles_raingauge=[i for i in glob.glob("./Rain_gauge/Data/2021/%s/%s/%s_*.txt.gz"%(date_time[-6:-4],date_time[-4:-2],date_time[:-2])) if int(i[-11:-7])>int(date_time[-2:])*100 and int(i[-11:-7])<(int(date_time[-2:])*100+1000)]
-# df_raingauge=[open_gzip(i) for i in Myfiles_raingauge]
-# #rainobs,rainobs_lons,rainobs_lats=raingauge_obs(Myfiles_raingauge)
+Myfiles_raingauge=[i for i in glob.glob("./Rain_gauge/Data/2021/%s/%s/%s_*.txt.gz"%(date_time[-6:-4],date_time[-4:-2],date_time[:-2])) if int(i[-11:-7])>int(date_time[-2:])*100 and int(i[-11:-7])<(int(date_time[-2:])*100+1000)]
+df_raingauge=[open_gzip(i) for i in Myfiles_raingauge]
+rainobs,rainobs_lons,rainobs_lats=raingauge_obs(Myfiles_raingauge)
 # rainobs,rainobs_lons, rainobs_lats = raingauge_obs_orig(Myfiles_raingauge)
 
-# zs_raingauge=produce_zonalstat_rg(rainobs,rainobs_lons,rainobs_lats,Myfiles_raingauge)
-# rg_2d=zone_to_2d_raingauge(zs_raingauge)
+zs_raingauge=produce_zonalstat_rg(rainobs,rainobs_lons,rainobs_lats,Myfiles_raingauge)
+rg_2d=zone_to_2d_raingauge(zs_raingauge)
 
 # #data_to_raster_rg(rainobs[0], rainobs_lons, rainobs_lats, "test_raingauge09.tif")
 
-# raingauge_plot(rainobs[0],rainobs_lons,rainobs_lats,world_map_file,"test",Myfiles_raingauge)
-
-
-# raingauge_plot(rg_2d[0],grid_NWP['xcoor'].values.reshape(125,157),grid_NWP['ycoor'].values.reshape(125,157),world_map_file,"test",Myfiles_raingauge)
+#raingauge_plot(rainobs[0],rainobs_lons,rainobs_lats,world_map_file,"test",Myfiles_raingauge)
+raingauge_plot(rg_2d[0],grid_4326['xcoor'].values.reshape(156,184),grid_4326['ycoor'].values.reshape(156,184),world_map_file,"test",Myfiles_raingauge)
 
 # ###############################################################################
 ###############################################################################
+
 
 #Radar and NWP750
 # for i in range(0,len(Radar_agg)):
@@ -230,18 +346,20 @@ save_name=str(Myfiles_radar_hr[0][0])[-15:-5]
 #Verification
 
 start_zonal=time.time()
-#zs_nwp=produce_zonalstat(extracted_nwp,lons_nwp,lats_nwp,Myfiles_nwp, "NWP")
+zs_nwp=produce_zonalstat(extracted_nwp,lons_nwp,lats_nwp,Myfiles_nwp, "NWP")
 zs_radar=produce_zonalstat(Radar_agg,radar_lons,radar_lats,Myfiles_radar_hr,"radar")
 print("Zonal stat takes:", time.time()-start_zonal)
 
 radar_2d=zone_to_2d(zs_radar)
+nwp_2d=zone_to_2d(zs_nwp)
 
 
 #plot_together(radar_2d[7],nwp_2d[7],grid_NWP['xcoor'].values.reshape(125,157),grid_NWP['ycoor'].values.reshape(125,157),grid_NWP['xcoor'].values.reshape(125,157),grid_NWP['ycoor'].values.reshape(125,157),world_map_file,"test_radar","test_nwp",1,1)
 
 
-np.savetxt("./25grid/Nwp+Radar/radar_2d_%s.txt"%(save_name[:10]),np.array(radar_2d).reshape(np.array(radar_2d).shape[0],-1))
+#np.savetxt("./25grid/Nwp+Radar/radar_2d_%s.txt"%(save_name[:10]),np.array(radar_2d).reshape(np.array(radar_2d).shape[0],-1))
 #np.savetxt("./25grid/Nwp+radar/nwp_2d_%s.txt"%(save_name[:10]),np.array(nwp_2d).reshape(np.array(nwp_2d).shape[0],-1))
+np.savetxt("./25grid/raingauge/rg_2d_%s.txt"%(save_name[:10]),np.array(rg_2d).reshape(np.array(nwp_2d).shape[0],-1))
 print("Time in total:", time.time()-start_start)
 #Retrieve:
 #load_nwp=np.loadtxt("./25grid/Nwp+Radar/nwp_2d_2607.txt")
@@ -263,8 +381,15 @@ print("Time in total:", time.time()-start_start)
 #fss=Fractional_skillscore(zs_radar,zs_nwp,296,intensity=10,plot=True)
 
 #Confusion matrix
-cm_day,ETS,PSS,FBI,TPR,TS,FPR=confusion_mat(rg_2d,nwp_2d)
-#pvs_prob.ROC_curve(zs_nwp,zs_raingauge,1)
+cm_day,ETS,PSS,FBI,TPR,TS,FPR,hit,miss,tot=confusion_mat(rg_2d,nwp_2d)
+
+plt.plot(hit)
+plt.plot(miss)
+
+plt.plot(np.arange(0,1.1,0.1),np.arange(0,1.1,0.1))
+plt.scatter(FPR,TPR)
+plt.xlim([0,1])
+plt.ylim([0,1])
 
 #SAL
 

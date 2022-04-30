@@ -208,6 +208,7 @@ def data_to_raster_NWP(data_array,lon,lat,path):
     output_raster.GetRasterBand(1).WriteArray(np.flip(np.array(data_array),axis=0))   # Writes my array to the raster
     output_raster.FlushCache()
 
+
 #############################################################################
 #############################################################################
 
@@ -219,20 +220,17 @@ def data_to_raster_NWP(data_array,lon,lat,path):
 # extracted_nea=read_parameter_info(nea_param,58)
 # extracted_nea['values']=remove_values_below(extracted_nea["values"],0.5)
 
-# # with rasterio.open(NEA_file) as r:
-# #     print(r.crs.to_proj4())
+# with rasterio.open(NEA_file) as r:
+#      print(r.crs.to_proj4())
+
+# data_to_raster_NWP(np.repeat(1,len(extracted_nea['lats'])*len(extracted_nea['lats'][0])).reshape(1069,1189),extracted_nea['lons'],extracted_nea['lats'],"C:/Users/olive/Desktop/Speciale/Kode/nea_full.tif")
 
 # nea_lats=extracted_nea['lats'][255:455,535:692]
 # nea_lons=extracted_nea['lons'][255:455,535:692]
 
+# np.savetxt("./nea.csv",np.transpose(np.vstack((np.array((extracted_nea['lons'].flatten())),np.array(extracted_nea['lats'].flatten()),np.array(np.repeat(1,np.size(extracted_nea['lats'])))))),delimiter=",")
+# np.savetxt("./nea_cut.csv",np.transpose(np.vstack((np.array((nea_lons.flatten())),np.array(nea_lats.flatten()),np.array(np.repeat(1,np.size(nea_lats)))))),delimiter=",")
 
-
-# np.savetxt("./cropnea.csv",np.array((nea_lons.flatten())),delimiter=",")
-# np.savetxt("./cropnea1.csv",np.array(nea_lats.flatten()),delimiter=",")
-# np.savetxt("./cropnea2.csv",np.array(np.repeat(1,np.size(nea_lats))),delimiter=",")
-
-    
-    
 #file_grib="./2021072612/00115"
 #file_grib="./2021072612/002"
 #pygrib_file = pygrib.open(file_grib)
@@ -243,8 +241,7 @@ def data_to_raster_NWP(data_array,lon,lat,path):
 #extracted_field = read_parameter_info(parameter_list, 58) #either 13 or 29 if file is not an exact hour 
 #np.nanmax(extracted_field['values'])
 
-#world_map_file = "C:/Users/olive/OneDrive/Desktop/Speciale/Kode/pygrib_functionality/pygrib_functionality/world_map_cut/world_map_background.shp" # file path to a shapefile with outline of Denmark
-
+world_map_file = "C:/Users/olive/OneDrive/Desktop/Speciale/Kode/pygrib_functionality/pygrib_functionality/world_map_cut/world_map_background.shp" # file path to a shapefile with outline of Denmark
 
 
 #removal_threshold = 0.5 # when plotting, define this threshold to remove values below the threshold from the figure
@@ -256,7 +253,6 @@ def data_to_raster_NWP(data_array,lon,lat,path):
 
 
 #Myfiles=[i for i in glob.glob("./2021072612/*") if len(i)<17]
-
 
     
 #open_n_plot(Myfiles,0.5,world_map_file,coordinates)

@@ -18,6 +18,8 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
+import glob
+from datetime import datetime
 
 # I've tried getting background maps with these packages, but it wasn't as nice as "c"ontextily"
 #import cartopy.crs as ccrs
@@ -43,11 +45,21 @@ stationdata = pd.read_csv(filepath, sep=",")
 
 stationdata_2021=stationdata[stationdata['timeobs'].str.contains("2021")]
 
+stationdata_0726=stationdata_2021[stationdata_2021['timeobs'].str.contains("07-26")]
+peak_intensity=[]
+interest_list=["05-16","05-17","05-28","07-08","07-25","07-26","07-31","08-06","08-09","08-10","08-15","08-16","08-17","09-11","09-15"]
+
+
+for i in range(0,len(interest_list)):
+   temp=stationdata_2021[stationdata_2021['timeobs'].str.contains(interest_list[i])]
+   peak_intensity.append(temp.groupby('timeobs').max())
 # function that finds days where a rain gauge has measured more than XX mm in a time window of YY hours.
 # If longterm_saturation = True, then there is a filter that removes periods where the large amounts of 
 # rain are caused by a one or a couple of big events. This is to ensure that I only identify periods where
 # there has been long-term rainfall that may cause saturation excess floods, which requires rainfall over several days
 # and not just one or two big events within a month
+
+
 
 def locate_pluvial_extremes_days_per_station(stationdata_df, rain_threshold, time_window, longterm_saturation=False):
     
@@ -56,7 +68,6 @@ def locate_pluvial_extremes_days_per_station(stationdata_df, rain_threshold, tim
     # allocate space in lists for station id-numbers and days/months 
     statid_list = []
     timeobs_list = []
-       
     
     for station in unique_station_ids:
         # check if accumulated precipitation exceeds the user-specified threshold
@@ -72,7 +83,7 @@ def locate_pluvial_extremes_days_per_station(stationdata_df, rain_threshold, tim
         if longterm_saturation==True:
             temp_cloudbursts = temp_df[(temp_df["rolling_sum"] >= rain_threshold) * (temp_df["maxsum_ratio"] < 0.167)]
         
-        temp_cloudburst_days = temp_cloudbursts["timeobs"].str[:10]
+        temp_cloudburst_days = temp_cloudbursts["timeobs"].str[:16]
         temp_cloudburst_days = temp_cloudburst_days.drop_duplicates()
         
         # add station id numbers and day/month information to the list
@@ -85,20 +96,19 @@ def locate_pluvial_extremes_days_per_station(stationdata_df, rain_threshold, tim
     # convert to proper time formats in pandas and sort the data according to time
     cloudburst_station_day["timeobs"] = pd.to_datetime(cloudburst_station_day["timeobs"], utc=True)
     cloudburst_station_day = cloudburst_station_day.sort_values(by=["timeobs"]).reset_index(drop=True)
+    #daymax_list.append(max(timeobs_list,key=timeobs_list.count))
     
     return(cloudburst_station_day)
-
 
 # days with cloudbursts. Here defined as 15mm / 1 hour, since the smallest time steps in the data are 1 hour,
 # and I thus can't check for the standard cloudburst definition (15mm / 30 minutes)
 cloudburst_days_2011_2021 = locate_pluvial_extremes_days_per_station(stationdata_2021, 15, 1)
+
+np.savetxt("./cloudburstdays.txt",np.array(cloudburst_days_2011_2021['timeobs']),fmt='%s')
+
 # days with "severe rain" (Danish: "kraftig regn") with DMI's standard definition of 24mm over 6 hours.
 severerain_days_2011_2021 = locate_pluvial_extremes_days_per_station(stationdata_2021, 24, 6)
-
-# "saturation" periods are here defined as 150 mm over 30 days, with the filter for single event impacts on.
-saturation_days_2011_2021 = locate_pluvial_extremes_days_per_station(stationdata_2021, 150, 24*30, longterm_saturation=True)
-saturation_days_2011_2021["timeobs"] = pd.to_datetime(saturation_days_2011_2021["timeobs"].astype(str).str[:7], utc=True)
-saturation_days_2011_2021 = saturation_days_2011_2021.drop_duplicates().reset_index(drop=True)
+np.savetxt("./severedays.txt",np.array(severerain_days_2011_2021['timeobs']),fmt='%s')
 
 
 ##########################################################################
@@ -154,7 +164,21 @@ def add_station_metadata(cloudburst_days_df, metadata_df):
 
 cloudburst_days_2011_2021 = add_station_metadata(cloudburst_days_2011_2021, metadata)
 severerain_days_2011_2021 = add_station_metadata(severerain_days_2011_2021, metadata)
-saturation_days_2011_2021 = add_station_metadata(saturation_days_2011_2021, metadata)
+
+
+def datesfind(extreme_rain_data):
+    list_extremerain=[]
+    for i in range(0,len(str(extreme_rain_data.dt.month))):
+        if len(str(extreme_rain_data.dt.day[i]))==2:
+            list_extremerain.append(str('0')+str(extreme_rain_data.dt.month[i])+str(extreme_rain_data.dt.day[i]))
+        else:
+            list_extremerain.append(str('0')+str(extreme_rain_data.dt.month[i])+str('0')+str(extreme_rain_data.dt.day[i]))
+    return(list_extremerain)
+        
+cloudburst_list=np.unique(datesfind(cloudburst_days_2011_2021['timeobs']))
+severerain_list=np.unique(datesfind(severerain_days_2011_2021['timeobs']))
+
+
 
 
 
@@ -175,7 +199,6 @@ def print_file_with_nice_dates(df, filepath, monthstep=False):
 
 print_file_with_nice_dates(cloudburst_days_2011_2021, "./cloudburst_days_2011_2021.csv")
 print_file_with_nice_dates(severerain_days_2011_2021, "./severerain_days_2011_2021.csv")
-print_file_with_nice_dates(saturation_days_2011_2021, "./saturation_days_2011_2021.csv", monthstep=True)
 
 
 
@@ -208,7 +231,7 @@ def make_geodataframe_with_geometry(df):
 
 cloudburst_days_2011_2021 = make_geodataframe_with_geometry(cloudburst_days_2011_2021)
 severerain_days_2011_2021 = make_geodataframe_with_geometry(severerain_days_2011_2021)
-saturation_days_2011_2021 = make_geodataframe_with_geometry(saturation_days_2011_2021)
+#saturation_days_2011_2021 = make_geodataframe_with_geometry(saturation_days_2011_2021)
 
 
 ### common pdf file with plots of both cloudbursts and severe rain
@@ -240,36 +263,61 @@ with matplotlib.backends.backend_pdf.PdfPages("./Cloudbursts_Severerain_days_201
         print(i)
      
     
-    
-    
-# plot saturation rain months
-with matplotlib.backends.backend_pdf.PdfPages("./longperiodsofrain_2011_2021.pdf") as pdf:
-    
-    sorted_saturation_days = sorted(saturation_days_2011_2021["timeobs"].unique())
-    
-    for i in range(len(sorted_saturation_days)):
-    #for i in range(5):
-        temp_saturation = saturation_days_2011_2021[saturation_days_2011_2021["timeobs"]==sorted_saturation_days[i]]
 
-        fig, ax = plt.subplots(1, figsize=(10,10))
-        ax.imshow(dk_img, extent=dk_ext)
-        temp_saturation.plot(ax=ax, color="red", label="Long wet period (> 150mm/30 days) w/o cloudbursts")
-        ax.set_title(temp_saturation["timeobs"].iloc[0].strftime("%b-%Y"))
-        plt.close()
-        pdf.savefig(fig, dpi=50)
-        
-        print(i)
 
 
 print("Time gone:",time.time()-start)
 
 
 #histogram
+base=severerain_days_2011_2021.iloc[0]['timeobs']
+date_list=[base+datetime.timedelta(days=x) for x in range(190)]
 
-plt.hist((severerain_days_2011_2021['timeobs'],cloudburst_days_2011_2021['timeobs'],saturation_days_2011_2021['timeobs']),stacked=True,bins=190) #There are 190 days between
-plt.legend(["Cloudburst","Severerain","Saturation"],loc='best')
-plt.xlabel('Date')
-plt.ylabel('Events')
+radar_data=[i[-10:-4] for i in glob.glob("./25grid/Radar/radar_20*.txt")]
+
+nwp_data=[i[-12:-6] for i in glob.glob("./25grid/NWP750/*")]
+
+def to_datetime(data,formatting):
+    datetime_obj=[]
+    for i in range(0,len(data)):
+        datetime_obj.append(datetime.strptime(data[i],formatting))
+    return datetime_obj
+
+datetime_radar=to_datetime(radar_data,"%y%m%d")
+datetime_nwp=to_datetime(nwp_data,"%y%m%d")
+    
+#plt.bar(datetime_precipitation,np.repeat(1,len(datetime_precipitation)),color="red")
+#plt.bar(datetime_radar,np.repeat(1,len(datetime_precipitation)),color="blue")
+
+def dates_for_plot(data):
+    dates=[]
+    for i in range(0,len((data))):
+        dates.append(data[i].date())
+    return dates
+
+dates_severe=dates_for_plot(severerain_days_2011_2021['timeobs'])
+dates_cloudburst=dates_for_plot(cloudburst_days_2011_2021['timeobs'])
+
+data_availability=[]
+for i in range(0,len(date_list)):
+    if date_list[i].to_pydatetime() in np.append(datetime_radar,datetime_nwp):
+        data_availability.append(1)
+    else:
+        data_availability.append(0)
+    
+
+fig,ax1=plt.subplots()
+ax2=ax1.twinx()
+#ax2=ax1.twiny()
+ax2.hist((np.unique(datetime_nwp),np.unique(datetime_radar)),stacked=True,bins=190,color=("darkolivegreen","green"),alpha=0.2)
+#ax2.plot(np.unique(datetime_nwp),np.repeat(1,len(np.unique(datetime_nwp))),"-")
+ax1.hist((np.unique(dates_severe),np.unique(dates_cloudburst)),color=("blue","violet"),stacked=False,bins=190) #There are 190 days between
+ax2.set_ylim(0,2)
+ax1.set_ylim(0,2)
+ax1.set_xlabel('Date')
+ax1.set_ylabel('Exceeding threshold (yes=1, no=0)')
+ax2.set_ylabel('Data availability (yes=1, no=0)')
 plt.show()
+
 
 

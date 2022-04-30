@@ -392,3 +392,154 @@ Created on Thu Mar 10 11:43:55 2022
 #    sq=squares_for_plot(grid_radar_sq)
 #    plot_w_squares(Radar_agg[i],extracted_nwp[i+1], radar_lons, radar_lats, extracted_nwp_coor[0]['lons'],extracted_nwp_coor[0]['lats'], world_map_file, "Radar \n %s/%s/%s - %s:00 UTC"%(str(Myfiles_radar_hr[0][-1:])[-11:-9],str(Myfiles_radar_hr[0][-1:])[-13:-11],str(Myfiles_radar_hr[0][-1:])[-17:-13],str(Myfiles_radar_hr[0][-1:])[-9:-7]),"NWP \n %s/%s/%s - %s:00 + %s UTC"%(Myfiles_nwp[0][-8:-6],Myfiles_nwp[0][-10:-8],Myfiles_nwp[0][-14:-10],Myfiles_nwp[0][-6:-4],str(1+i)),sq)
 ########################################
+
+#grid_NWP=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_DMI_NWP.shp")
+
+#coor_grid="C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/DMI_grid_coor1.shp"
+#coor_grid_NWP="C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_NWP_coor.shp"
+
+#grid_25_coor=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/DMI_grid_coor1.shp")
+#grid_25_coor_NWP=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_NWP_coor.shp")
+#grid_NWP['ycoor']=grid_25_coor_NWP['ycoord']
+#grid_NWP['xcoor']=grid_25_coor_NWP['xcoord']
+
+#grid_small=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_northernzealand.shp")
+#grid_small_coor=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/coor_nothernzealand.shp")
+#grid_small_nwp=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_northernzealand_nwp.shp")
+#grid_small_nwp['ycoor']=grid_small_coor['ycoord']
+#grid_small_nwp['xcoor']=grid_small_coor['xcoord']
+
+#grid_coor=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_op.shp") #In original rotated lat/lon
+#grid=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/25gridnwp.shp") #In original rotated lat/lon
+
+#grid_radar=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/25gridradar.shp")
+
+###############################################
+
+# Make a raster that the data can be inserted into. Produces a tiff file.
+# def data_array_to_raster(data_array, tif_path):
+#     #transform = rasterio.transform.from_origin(-422114.8, 469381, 500, 500) # define coordinates for the DMI grid
+#     transform = rasterio.transform.from_origin(-174865, 263131, 500, 500) # define coordinates for the DMI grid
+#     proj4string_dmistere = '+proj=stere +ellps=WGS84 +lat_0=56 +lon_0=10.5666 +lat_ts=56' # The raw data's projection
+#     #transform = rasterio.transform.from_origin(7.582964884675271,58.32806110474353,0.008519049771461227, 0.004481469249843848) # define coordinates for the DMI grid
+#     #proj4string_dmistere = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs " # The raw data's projection
+
+#     # Produce raster with rasterio package
+#     with rasterio.open(tif_path, 'w', driver='GTiff',
+#                        height = data_array.shape[0], width = data_array.shape[1],
+#                        count=1, dtype=str(data_array.dtype),
+#                        crs=proj4string_dmistere,
+#                        transform=transform) as file:
+#         file.write(data_array, 1)
+    
+#     raster_array = rxr.open_rasterio('./{}'.format(tif_path),tif_path).squeeze() # load data
+    
+#     with rxr.open_rasterio(tif_path) as file:
+#         raster_array = file.squeeze()
+    
+#     #raster_array.close()
+#     #os.remove('./data_array.tif')
+    
+#     return(raster_array)
+    
+#####################################################################
+
+# [Not recommended to use this function!] Function that reprojects a raster
+# Be careful with this function. It can reproject a raster, but it changes the shape of the array and thus the data resolution!
+# def reproject_raster(raster_data, destination_epsg_crs):
+#     dest_crs = rasterio.crs.CRS.from_epsg(destination_epsg_crs) # define object for target crs
+#     raster_projected = raster_data.rio.reproject(dest_crs)
+#     raster_projected.data[raster_projected.data==np.nanmin(raster_projected.data)] = np.nan # reprojection creates -9999 values, that need to be removed
+#     return(raster_projected)
+
+
+###########################################################################
+####################### WORKS FINE BUT IS JUST NOT WHAT I NEED#############
+  
+# def plot_all_samegrid(radar_data,nwp_data,nea_data, lons, lats, world_map_file, plot_title_radar,plot_title_nwp,plot_title_nea,save_name,timestep,preciptype):
+    
+#     world_map = gpd.read_file(world_map_file)
+    
+#     # create custom color map
+#     cmap = colors.ListedColormap(["#85E3E4", '#42D8D8', '#42AFD8', '#4282D8', "#FFE600", '#FFAF00', '#FF5050', '#FF1A1A', "#BD0000", "#8C0000"])
+#     #boundaries = [0, .5, 1, 2, 3, 4, 5, 7.5, 10, 15, 20]
+#     boundaries = [0, 2, 5, 10, 15, 20, 25, 35, 50, 75, 100]
+#     norm = colors.BoundaryNorm(boundaries, cmap.N, clip=True)
+    
+#     # Make plot
+#     #world_map.plot(facecolor="lightgrey")
+#     fig,axs=plt.subplots(1,3,sharex=True,sharey=True,gridspec_kw={"width_ratios":[1,1,1.09]},figsize=(16,8))
+#     fig.text(0.5,0.2,"Longitude",ha='center')
+#     fig.text(0.06,0.5,"Latitude",va='center',rotation='vertical')
+#     #fig.tight_layout(pad=3.0)
+#     world_map.plot(facecolor="lightgrey",ax=axs[0])
+#     pcm=axs[0].pcolor(lons, lats, radar_data, shading = "auto", alpha=1, cmap=cmap, norm=norm)
+#     axs[0].set_xlim(7,15)
+#     axs[0].set_ylim(54.5,58)
+
+#     axs[0].title.set_text(plot_title_radar)
+#     world_map.plot(facecolor="lightgrey",ax=axs[1])
+#     pcm=axs[1].pcolor(lons, lats, nwp_data, shading = "auto", alpha=1, cmap=cmap, norm=norm)
+#     axs[1].set_xlim(7,15)
+#     axs[1].set_ylim(54.5,58)
+
+#     axs[1].title.set_text(plot_title_nwp)
+#     axs[1].tick_params('y',labelleft=False,left=False)
+#     #axs[1].set_yticks([])
+#     world_map.plot(facecolor="lightgrey",ax=axs[2])
+#     pcm=axs[2].pcolor(lons, lats, nea_data, shading = "auto", alpha=1, cmap=cmap, norm=norm)
+#     axs[2].set_xlim(7,15)
+#     axs[2].set_ylim(54.5,58)
+#     axs[2].title.set_text(plot_title_nea)
+#     axs[2].tick_params('y',labelleft=False,left=False)
+#     cbar = fig.colorbar(pcm,ax=axs[2],fraction=0.040, pad=0.04)
+#     cbar.ax.set_ylabel('Rainfall intensity [mm/h]', rotation=90)
+#     plt.subplots_adjust(wspace=0.05,hspace=0)
+#     plt.show()
+#     current=os.getcwd()
+#     os.chdir("C:/Users/olive/Desktop/Speciale/Kode/Pics/%s"%preciptype) 
+#     #newpath="r"+save_path[:-7]%str(save_name[-6:-2])
+#     newpath=r'./%s/'%save_name[-6:-2]
+#     if not os.path.exists(newpath):
+#         os.makedirs(newpath)
+#     os.chdir("C:/Users/olive/Desktop/Speciale/Kode/Pics/%s/%s"%(preciptype,newpath[-6:-1]))
+#     save_name=os.getcwd()+"/"+str(save_name[-2:])+"_"+str(timestep)
+#     if os.path.isfile(save_name):
+#         os.remove(save_name)
+#     plt.savefig(save_name,bbox_inches='tight')
+#     plt.close()
+#     os.chdir(current)
+
+# def produce_gifs_samegrid(dates,preciptype):
+#     os.chdir("C:/Users/olive/Desktop/Speciale/Kode") 
+#     for i in range(0,len(np.unique(dates))):
+#         date=str(np.unique(dates)[i])
+#         try:
+#             load_radar=np.loadtxt("./25grid/Radar/radar_20%s.txt"%date[:-2])
+#         except FileNotFoundError:
+#             continue
+
+#         load_NEA=np.loadtxt("./25grid/NEA/nea_2d_%s.txt"%date)
+#         load_nwp=np.loadtxt("./25grid/NWP750/nwp_2d_%s.txt"%date)
+#         load_radar=np.loadtxt("./25grid/Radar/radar_20%s.txt"%date[:-2])
+
+#         orig_nea=load_NEA.reshape(load_NEA.shape[0],load_NEA.shape[1] // 184, 184)
+#         orig_nwp=load_nwp.reshape(load_nwp.shape[0],load_nwp.shape[1] // 184, 184)
+#         orig_radar=load_radar.reshape(load_radar.shape[0],load_radar.shape[1] // 184, 184)
+
+#         for timestep in range(0,len(orig_nea)): 
+#             if (int(date[-2:])+timestep)>23:
+#                 continue
+#             else:
+#                 radar_format="Radar \n %s/%s/%s - %s:00 UTC"%(str('20')+date[:2],date[2:4],date[4:6],str(int(date[-2:])+timestep))
+#                 nwp_format="NWP750 \n %s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(timestep))
+#                 nea_format="NWP2500 \n %s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(timestep))    
+#                 plot_all_samegrid(orig_radar[int(date[-2:])+timestep],orig_nwp[timestep],orig_nea[timestep],lons_25, lats_25,world_map_file,radar_format, nwp_format, nea_format, str(date),str(timestep),preciptype)
+
+#         make_gif("./Pics/%s/%s/*.png"%(preciptype,date[2:6]),'./Pics/%s/gifs/%s.gif'%(preciptype,date),2)
+
+
+# produce_gifs_samegrid(cloudburst_dates,"cloudburst")
+# produce_gifs_samegrid(severe_dates,"severerain")
+#########################################################################################################
+#########################################################################################################

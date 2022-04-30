@@ -80,60 +80,40 @@ plotting_crs = 'epsg:4326' # the CRS projection you want to plot the data in
 nwp_crs = 'epsg:25832' # the CRS projection you want to plot the data in
 
 
-###############################################################################
-#Radar
-#Radar coordinates
-x_radar_coords = np.arange(-421364.8 - 500, 569635.2 + 500, 500) # need to add and subtract 500 because np.arange does not include end points
-y_radar_coords = np.arange(468631 + 500, -394369 - 500, -500)
+st=time.time()
+rainobs,rainobs_lons,rainobs_lats=raingauge_obs(raingauge_days[0:1])
+print(time.time()-st)
+st1=time.time()
+rainobs,rainobs_lons,rainobs_lats=raingauge_obs_orig(raingauge_days[0:1])
+print(time.time()-st1)
 
-#####Limit radar
-radar_lons, radar_lats = project_raster_coords(x_radar_coords, y_radar_coords, dmi_stere_crs, dmi_stere_crs)
-radar_lons_4326,radar_lats_4326=project_raster_coords(x_radar_coords, y_radar_coords, dmi_stere_crs, plotting_crs)
-
-radar_lons=radar_lons[412:1500,494:1175]
-radar_lats=radar_lats[412:1500,494:1175]
-radar_lons_4326=radar_lons_4326[412:1500,494:1175]
-radar_lats_4326=radar_lats_4326[412:1500,494:1175]
-#FILES
 ###############################################################################
 month=["05","06","07","08","09","10"]
+
 date_times=[]
 for k in range(0,len(month)):
-    file_radar=glob.glob("./Radar/2021-%s/*"%month[k])
-    file_short=[file_radar[s][-15:-7] for s in range(0,len(file_radar))]
+    file_raingauge=glob.glob("./Rain_gauge/Data/2021/%s/*"%month[k])
+    days=len(file_raingauge)
+    for number in range(0,days):
+        start_start=time.time()
+        
+        raingauge_days=glob.glob(str(file_raingauge[number])+"/*")
+        df_raingauge=[open_gzip(i) for i in raingauge_days]
+        #rainobs,rainobs_lons,rainobs_lats=raingauge_obs(raingauge_days)
 
-    date_times.append([item for item, count in collections.Counter(file_short).items() if count > 1439])
-# date_times=[]
-# for i in range(0,len(remove_dup)):
-#     for j in range(0,24,1):
-#         if len(str(j))==1:
-#             hour=str(0)+str(j)
-#         else:
-#             hour=str(j)
-#         date_times.append(remove_dup[i]+hour)
-date_times=[item for sublist in date_times for item in sublist]
+        
+        zs_raingauge=produce_zonalstat_rg(rainobs,rainobs_lons,rainobs_lats,Myfiles_raingauge)
+        rg_2d=zone_to_2d_raingauge(zs_raingauge)
+        
+        save_name=str(file_raingauge[number])[-5:]
 
-for i in range(0,len(date_times)):
-    start_start=time.time()
-    
-
-    Myfiles_radar=[i for i in glob.glob("./Radar/2021-%s/*.%s*"%(month,date_times[i]))]
-    Myfiles_radar_hr=np.array_split(Myfiles_radar,24) #The first is removed because the belongs to previous timeframe
-    Radar_agg=aggregate_data(Myfiles_radar_hr,threshold_value)
-
-    save_name=str(Myfiles_radar_hr[0][0])[-15:-5]
 
 ###############################################################################
 ###############################################################################
 #aggregate
-
-    zs_radar=produce_zonalstat(Radar_agg,radar_lons,radar_lats,Myfiles_radar,"radar")
-
-    radar_2d=zone_to_2d(zs_radar)
-
-    np.savetxt("./25grid/Radar/radar_%s.txt"%(save_name[:8]),np.array(radar_2d).reshape(np.array(radar_2d).shape[0],-1))
-    print("Time in total:", time.time()-start_start)
-    print(i)
+        np.savetxt("./25grid/raingauge/raingauge_%s_%s.txt"%(save_name[:-3],save_name[-2:]),np.array(rg_2d).reshape(np.array(rg_2d).shape[0],-1))
+        print("Time in total:", time.time()-start_start)
+        print(number)
 
 
 #For testing

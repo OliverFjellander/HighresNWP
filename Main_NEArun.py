@@ -65,79 +65,68 @@ from osgeo import osr
 from pygeoprocessing import zonal_statistics
 from skimage import data, io, filters
 from scipy.ndimage.measurements import center_of_mass
+start_start=time.time()
 
 ###########################################################################
 ###########################################################################
 ###########################################################################
 os.chdir("C:/Users/olive/Desktop/Speciale/Kode") 
 world_map_file = "C:/Users/olive/OneDrive/Desktop/Speciale/Kode/pygrib_functionality/pygrib_functionality/world_map_cut/world_map_background.shp" # file path to a shapefile with outline of Denmark
-grid=gpd.read_file("C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/coor_4326.shp") 
-grid_x=np.array(grid['xcoor']).reshape(156,184)
-grid_y=np.array(grid['ycoor']).reshape(156,184)
+
+
 threshold_value=0.5
 dmi_stere_crs = CRS("+proj=stere +ellps=WGS84 +lat_0=56 +lon_0=10.5666 +lat_ts=56") # raw data CRS projection
 plotting_crs = 'epsg:4326' # the CRS projection you want to plot the data in
 nwp_crs = 'epsg:25832' # the CRS projection you want to plot the data in
 
 
-###############################################################################
-#Radar
-#Radar coordinates
-x_radar_coords = np.arange(-421364.8 - 500, 569635.2 + 500, 500) # need to add and subtract 500 because np.arange does not include end points
-y_radar_coords = np.arange(468631 + 500, -394369 - 500, -500)
-
-#####Limit radar
-radar_lons, radar_lats = project_raster_coords(x_radar_coords, y_radar_coords, dmi_stere_crs, dmi_stere_crs)
-radar_lons_4326,radar_lats_4326=project_raster_coords(x_radar_coords, y_radar_coords, dmi_stere_crs, plotting_crs)
-
-radar_lons=radar_lons[412:1500,494:1175]
-radar_lats=radar_lats[412:1500,494:1175]
-radar_lons_4326=radar_lons_4326[412:1500,494:1175]
-radar_lats_4326=radar_lats_4326[412:1500,494:1175]
 #FILES
 ###############################################################################
-month=["05","06","07","08","09","10"]
-date_times=[]
-for k in range(0,len(month)):
-    file_radar=glob.glob("./Radar/2021-%s/*"%month[k])
-    file_short=[file_radar[s][-15:-7] for s in range(0,len(file_radar))]
 
-    date_times.append([item for item, count in collections.Counter(file_short).items() if count > 1439])
-# date_times=[]
-# for i in range(0,len(remove_dup)):
-#     for j in range(0,24,1):
-#         if len(str(j))==1:
-#             hour=str(0)+str(j)
-#         else:
-#             hour=str(j)
-#         date_times.append(remove_dup[i]+hour)
-date_times=[item for sublist in date_times for item in sublist]
+#NWP
+#extract_tar('./NWP750/dk7502021070810.tar.gz')
+#extract_tar('./NWP750/dk7502021050101.pkl.gz')
+coordinates_nwp=(7,15,54.5,58)
+Myfiles_nwp=[i for i in glob.glob("./NWP2500/*")]
 
-for i in range(0,len(date_times)):
-    start_start=time.time()
+NEA_file="./pygrib_functionality/pygrib_functionality/sNEA2104302103"
+tst_nea=pygrib.open(NEA_file)
+nea_param=tst_nea.read()
+extracted_nea=read_parameter_info(nea_param,58)
+extracted_nea['values']=remove_values_below(extracted_nea["values"],0.5)
+nea_lats=extracted_nea['lats'][255:455,535:692]
+nea_lons=extracted_nea['lons'][255:455,535:692]
+
+for i in range(35,len(Myfiles_nwp)):
+    save_name=str(Myfiles_nwp[i])[-21:-13]
     
+    f=gzip.open(Myfiles_nwp[i],'rb')
+    loaded=pickle.load(f,encoding='bytes')
+    f.close()
 
-    Myfiles_radar=[i for i in glob.glob("./Radar/2021-%s/*.%s*"%(month,date_times[i]))]
-    Myfiles_radar_hr=np.array_split(Myfiles_radar,24) #The first is removed because the belongs to previous timeframe
-    Radar_agg=aggregate_data(Myfiles_radar_hr,threshold_value)
+    loaded=remove_values_below(loaded,0.5)
+    df=loaded.transpose(2,0,1)
+    
+    zs=produce_zonalstat(df,nea_lons,nea_lats,Myfiles_nwp[i],"NWP25")
 
-    save_name=str(Myfiles_radar_hr[0][0])[-15:-5]
-
-###############################################################################
-###############################################################################
-#aggregate
-
-    zs_radar=produce_zonalstat(Radar_agg,radar_lons,radar_lats,Myfiles_radar,"radar")
-
-    radar_2d=zone_to_2d(zs_radar)
-
-    np.savetxt("./25grid/Radar/radar_%s.txt"%(save_name[:8]),np.array(radar_2d).reshape(np.array(radar_2d).shape[0],-1))
-    print("Time in total:", time.time()-start_start)
-    print(i)
+    nwp_2d=zone_to_2d(zs)
+    np.savetxt("./25grid/NEA/nea_2d_%s.txt"%(save_name[:10]),np.array(nwp_2d).reshape(np.array(nwp_2d).shape[0],-1))
 
 
-#For testing
-#load_radar=np.loadtxt("./25grid/Radar/radar_%s.txt"%save_name[:8])
-#load_radar=load_radar.reshape(load_radar.shape[0],load_radar.shape[1] // 184,184)
-#radar_plot(Radar_agg[0],radar_lons_4326,radar_lats_4326,world_map_file,"test",1)
-#radar_plot(load_radar[0],grid_x,grid_y,world_map_file,"test",1)
+load_nwp=np.loadtxt("./25grid/NEA/nea_2d_%s.txt"%(save_name[:10]))
+orig_nwp=load_nwp.reshape(load_nwp.shape[0],load_nwp.shape[1] // 184, 184)
+
+
+load_radar=np.loadtxt("./25grid/Radar/radar_20210507.txt")
+orig_radar=load_radar.reshape(load_radar.shape[0],load_radar.shape[1] // 184, 184)
+
+#plt.imshow(df[0])
+#plot_together(orig_radar[13], orig_nwp[6], np.array(grid_4326['xcoor']).reshape((156,184)), np.array(grid_4326['ycoor']).reshape((156,184)), np.array(grid_4326['xcoor']).reshape((156,184)), np.array(grid_4326['ycoor']).reshape((156,184)), world_map_file, "radar", "nwp", 1,1)
+
+
+#data_to_raster_NWP(np.repeat(1,np.size(lons_nwp)).reshape(630,700),lons_nwp,lats_nwp,"./nwp_area.tif")        
+#np.savetxt("./high_res.csv",np.transpose(np.vstack((np.array((lons_nwp.flatten())),np.array(lats_nwp.flatten()),np.array(np.repeat(1,np.size(lons_nwp)))))),delimiter=",")
+   
+
+
+    

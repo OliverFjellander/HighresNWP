@@ -1,9 +1,3 @@
-# Python script with functions and an example that can:
-# - Read a standard HDF5 radar file from DMI
-# - Convert raw data to dBZ and rainfall intensity
-# - Create and project a raster for plotting purpose
-# - Make simple plot of the data on top of a map
-
 import os
 import numpy as np
 import h5py
@@ -31,6 +25,9 @@ from osgeo import osr
 from pygeoprocessing import zonal_statistics
 #from skimage.feature import peak_local_max
 # Function that reads the raw data from an HDF5 file
+
+            
+##############################################
 
 def movefiles(input_path,output_path):
     file_move=[i for i in glob.glob(input_path)]
@@ -81,32 +78,6 @@ def dbz_to_R_marshallpalmer(dbz_data):
     return(rain_data)
 
 
-# Make a raster that the data can be inserted into. Produces a tiff file.
-def data_array_to_raster(data_array, tif_path):
-    #transform = rasterio.transform.from_origin(-422114.8, 469381, 500, 500) # define coordinates for the DMI grid
-    transform = rasterio.transform.from_origin(-174865, 263131, 500, 500) # define coordinates for the DMI grid
-    proj4string_dmistere = '+proj=stere +ellps=WGS84 +lat_0=56 +lon_0=10.5666 +lat_ts=56' # The raw data's projection
-    #transform = rasterio.transform.from_origin(7.582964884675271,58.32806110474353,0.008519049771461227, 0.004481469249843848) # define coordinates for the DMI grid
-    #proj4string_dmistere = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs " # The raw data's projection
-
-    # Produce raster with rasterio package
-    with rasterio.open(tif_path, 'w', driver='GTiff',
-                       height = data_array.shape[0], width = data_array.shape[1],
-                       count=1, dtype=str(data_array.dtype),
-                       crs=proj4string_dmistere,
-                       transform=transform) as file:
-        file.write(data_array, 1)
-    
-    raster_array = rxr.open_rasterio('./{}'.format(tif_path),tif_path).squeeze() # load data
-    
-    with rxr.open_rasterio(tif_path) as file:
-        raster_array = file.squeeze()
-    
-    #raster_array.close()
-    #os.remove('./data_array.tif')
-    
-    return(raster_array)
-    
 
 def data_to_raster_RADAR(data_array,lon,lat,path):
     xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
@@ -130,13 +101,6 @@ def produce_zonalstat_radar(data,lons,lats,files):
     zs=zonal_statistics((tif_path,1),"C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/25gridradar.shp",ignore_nodata=False,polygons_might_overlap=False)
     return zs
 
-# [Not recommended to use this function!] Function that reprojects a raster
-# Be careful with this function. It can reproject a raster, but it changes the shape of the array and thus the data resolution!
-def reproject_raster(raster_data, destination_epsg_crs):
-    dest_crs = rasterio.crs.CRS.from_epsg(destination_epsg_crs) # define object for target crs
-    raster_projected = raster_data.rio.reproject(dest_crs)
-    raster_projected.data[raster_projected.data==np.nanmin(raster_projected.data)] = np.nan # reprojection creates -9999 values, that need to be removed
-    return(raster_projected)
     
 # Function that transforms a set of coordinates
 # Input a set of coordinates, the original CRS and desired output CRS
@@ -150,20 +114,6 @@ def project_raster_coords(x_coords, y_coords, orig_crs, dest_crs):
 def remove_values_below(surface_field, threshold):
     surface_field[surface_field <= threshold] = np.nan
     return(surface_field)
-
-def aggregate_data_tst(Data,threshold_value): #Aggregate data for every hour
-    #rain_total=np.zeros((len(Data),1728,1984),float)
-    rain_total=np.zeros((1500-412,1175-494),float)
-    #rain_total=np.zeros((len(Data),1115-892,1015-715),float)
-    for j in range(0,len(Data)):
-        raw=read_raw_radardata(Data[j])
-        dbz=raw_radardata_to_dbz(raw)
-        dbz_smalldom=dbz[412:1500,494:1175]
-        rain=dbz_to_R_marshallpalmer(dbz_smalldom)/60 #Divide by 60 to get correct intensity
-        rain_total=rain_total+pd.DataFrame(rain).fillna(0)
-    rain_total=remove_values_below(rain_total,threshold_value)
-        #radar_plot(rain_total[i],radar_lons,radar_lats,world_map_file,"%s/%s/%s - %s:00 UTC"%(Data[i][0][-9:-7],Data[i][0][-11:-9],Data[i][0][-15:-11],Data[i][j][-7:-5]),Data[i][j])
-    return rain_total
 
 
 def aggregate_data(Data,threshold_value): #Aggregate data for every hour
@@ -207,7 +157,6 @@ def radar_plot(rain_array, lons, lats, world_map_file, plot_title,file_input):
     #plt.savefig(save_name,bbox_inches='tight')
     #plt.close()
     
-
 
     
 def make_gif(path_to_png,path_placing_gif,duration):
@@ -266,15 +215,6 @@ world_map_file = "C:/Users/olive/OneDrive/Desktop/Speciale/Kode/pygrib_functiona
 #Myfiles=[i for i in glob.glob("./Radar/Data/Interpolations/*")] #There should only be complete hours
 
 #Myfiles_hr=np.array_split(Myfiles[1-len(Myfiles):],len(Myfiles[1-len(Myfiles):])/60) #The first is removed because the belongs to previous timeframe
-
-#rain_tst=np.zeros((1728,1984),float)
-#for j in range(0,len(Myfiles_hr[1])):
-#    raw=read_raw_radardata(Myfiles_hr[1][j])
-#    dbz=raw_radardata_to_dbz(raw)
-#    rain=dbz_to_R_marshallpalmer(dbz)/60 #Divide by 60 to get correct intensity
-#    rain_tst=rain_tst+pd.DataFrame(rain).fillna(0)
-#rain_tst=remove_values_below(rain_tst,0.5)
-#radar_plot(rain_tst,radar_lons,radar_lats,world_map_file,"%s/%s/%s - %s:00 UTC"%(Myfiles_hr[1][0][-9:-7],Myfiles_hr[1][0][-11:-9],Myfiles_hr[1][0][-15:-11],Myfiles_hr[1][j][-7:-5]),Myfiles_hr[1][j])
 
 #agg_list=aggregate_data(Myfiles_hr,0.5)
 

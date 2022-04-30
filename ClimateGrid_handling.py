@@ -188,7 +188,7 @@ def produce_zonalstat_rg(data,lons,lats,filename):
         #raster_radar=rasterio.open(tif_path_radar,masked=False)
         #raster_nwp=rasterio.open(tif_path_nwp,masked=False)
 
-        zs.append(zonal_statistics((tif_path,1),"C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_DMI_raingauge.shp",ignore_nodata=False,polygons_might_overlap=False))
+        zs.append(zonal_statistics((tif_path,1),"C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/25grid_25832.shp",ignore_nodata=False,polygons_might_overlap=False))
         #print(time.time()-start) 
     return zs
 
@@ -197,6 +197,8 @@ def zonalstat_rg(data_zonalstat):
     for i in range(0,len(data_zonalstat)):
         if np.isnan(data_zonalstat[i]['sum']):
             data_ts=np.append(data_ts,0.0)
+        elif data_zonalstat[i]['count']==0:
+            data_ts=np.append(data_ts,0.0)
         else:
             data_ts=np.append(data_ts,data_zonalstat[i]['sum']/data_zonalstat[i]['count'])
     return data_ts
@@ -204,7 +206,7 @@ def zonalstat_rg(data_zonalstat):
 def zone_to_2d_raingauge(z_stat):
     grid_2d=[[] for _ in range(len(z_stat))]
     for i in range(0,len(z_stat)):
-        grid_2d[i]=np.reshape(zonalstat_rg(z_stat[i]),(125,157))
+        grid_2d[i]=np.reshape(zonalstat_rg(z_stat[i]),(156,184))
         grid_2d[i][grid_2d[i]==0]=np.nan
         grid_2d[i][grid_2d[i]==0]=np.nan
     return grid_2d

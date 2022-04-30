@@ -79,7 +79,7 @@ pickle.dump(extracted_nwp, gzip.open(file_name, 'wb'))
 
 
 #TESTING
-file_name_tst="./NWP750/test_2021072612/dk7502021072612_1.pkl.gz"
+file_name_tst="./NWP750/sNEA21050100_00_07.pkl.gz"
     
 f=gzip.open(file_name_tst,'rb')
 loaded_tst=pickle.load(f,encoding='bytes')
@@ -88,8 +88,7 @@ f.close()
 loaded_tst=remove_values_below(loaded_tst,0.5)
 tst=loaded_tst.transpose(2,0,1)
 
-for i in range(1,2):
-    nwp_plot(tst[i],lons_nwp,lats_nwp,"test",world_map_file,1,1)
+
     
 
 
