@@ -199,10 +199,6 @@ def produce_gifs(dates,preciptype):
             Myfiles_nwp.append(all_nwp[i])
         else:
             pass
-    
-        
-    #for i in range(0,len(dates)):
-    df_tst=[]
     for i in range(0,len(Myfiles_nwp)):
         date=Myfiles_nwp[i][-15:-7]
         
@@ -230,15 +226,17 @@ def produce_gifs(dates,preciptype):
             if (int(date[-2:])+timestep)>23:
                 continue
             else:
-                radar_format="Radar \n %s/%s/%s - %s:00 UTC"%(str('20')+date[:2],date[2:4],date[4:6],str(int(date[-2:])+timestep))
-                nwp_format="NWP750 \n %s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(timestep))
-                nea_format="NWP2500 \n %s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(timestep))    
+                radar_format="Radar fields \n %s/%s/%s - %s:00 UTC"%(str('20')+date[:2],date[2:4],date[4:6],str(int(date[-2:])+timestep))
+                nwp_format="DK750 \n %s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(timestep))
+                nea_format="NEA \n %s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(timestep))    
                 plot_all(Radar_agg[int(date[-2:])+timestep],df_nwp[timestep],orig_nea[timestep],radar_lons_4326, radar_lats_4326,lons_nwp,lats_nwp,lons_25, lats_25,world_map_file,radar_format, nwp_format, nea_format, str(date),str(timestep),preciptype)
         print("Time for %s:"%i,time.time()-start)
-        make_gif("./Pics/%s/%s/*.png"%(preciptype,date[2:6]),'./Pics/%s/gifs/%s.gif'%(preciptype,date),2)
+        make_gif("./Pics/%s/%s/*.png"%(preciptype,date[2:6]),'./Pics/%s/gifs/%s.gif'%(preciptype,date),0.4)
+        
 
-tst=produce_gifs(cloudburst_dates,"cloudburst")
 produce_gifs(severe_dates,"severerain")
+
+
 ##############################################################################
 ####################Producing pictures to the report##########################
 lons_25=np.array(coor_4326['xcoor']).reshape((156,184))
@@ -255,7 +253,7 @@ for i in range(0,len(all_nwp)):
     else:
         pass
     
-date=Myfiles_nwp[23][-15:-7]
+date=Myfiles_nwp[23][-15:-7] # #19 is a good example as well as 23/24
 date1=Myfiles_nwp[24][-15:-7]
         
 file=Myfiles_nwp[23]
@@ -284,17 +282,16 @@ load_NEA1=np.loadtxt("./25grid/NEA/nea_2d_%s.txt"%date1)
 orig_nea=load_NEA.reshape(load_NEA.shape[0],load_NEA.shape[1] // 184, 184)
 orig_nea1=load_NEA1.reshape(load_NEA1.shape[0],load_NEA1.shape[1] // 184, 184)
 
-
-radar_format="Radar \n %s/%s/%s - %s:00 UTC"%(str('20')+date[:2],date[2:4],date[4:6],str(int(date[-2:])+3))
-radar_format1="%s/%s/%s - %s:00 UTC"%(str('20')+date[:2],date[2:4],date[4:6],str(int(date[-2:])+6))
-radar_format2="%s/%s/%s - %s:00 UTC"%(str('20')+date1[:2],date1[2:4],date1[4:6],str(int(date1[-2:])+3))
-nwp_format="DK750 \n %s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(3))
-nwp_format1="%s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(6))
-nwp_format2="%s/%s/%s - %s:00 + %s UTC"%(str('20')+date1[:2],date1[2:4],date1[4:6],date1[-2:],str(3))
-nea_format="NEA \n %s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(3))    
-nea_format1="%s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(6))    
-nea_format2="%s/%s/%s - %s:00 + %s UTC"%(str('20')+date1[:2],date1[2:4],date1[4:6],date1[-2:],str(3))    
-plot_all_tst(Radar_agg[int(date[-2:])+3],Radar_agg[int(date[-2:])+6],Radar_agg[int(date[-2:])+9],df_nwp[3],df_nwp[6],df_nwp1[3],orig_nea[3],orig_nea[6],orig_nea1[3],radar_lons_4326, radar_lats_4326,lons_nwp,lats_nwp,lons_25, lats_25,world_map_file,radar_format,radar_format1,radar_format2, nwp_format,nwp_format1,nwp_format2, nea_format,nea_format1,nea_format2, str(date),str(timestep),"cloudburst")
+radar_format="Radar \n %s/%s/%s - %s:00 UTC"%(str('20')+date[:2],date[2:4],date[4:6],str(int(date[-2:])+2))
+radar_format1="%s/%s/%s - %s:00 UTC"%(str('20')+date[:2],date[2:4],date[4:6],str(int(date[-2:])+4))
+radar_format2="%s/%s/%s - %s:00 UTC"%(str('20')+date1[:2],date1[2:4],date1[4:6],str(int(date[-2:])+6))
+nwp_format="DK750 \n %s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(2))
+nwp_format1="%s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(4))
+nwp_format2="%s/%s/%s - %s:00 + %s UTC"%(str('20')+date1[:2],date1[2:4],date1[4:6],date[-2:],str(6))
+nea_format="NEA \n %s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(2))    
+nea_format1="%s/%s/%s - %s:00 + %s UTC"%(str('20')+date[:2],date[2:4],date[4:6],date[-2:],str(4))    
+nea_format2="%s/%s/%s - %s:00 + %s UTC"%(str('20')+date1[:2],date1[2:4],date1[4:6],date[-2:],str(6))    
+plot_all_tst(Radar_agg[int(date[-2:])+2],Radar_agg[int(date[-2:])+4],Radar_agg[int(date[-2:])+6],df_nwp[2],df_nwp[4],df_nwp[6],orig_nea[2],orig_nea[4],orig_nea[6],radar_lons_4326, radar_lats_4326,lons_nwp,lats_nwp,lons_25, lats_25,world_map_file,radar_format,radar_format1,radar_format2, nwp_format,nwp_format1,nwp_format2, nea_format,nea_format1,nea_format2, str(date),str(3),"cloudburst")
 
 ###############################################################################
 ##Rain gauge
@@ -306,7 +303,7 @@ rainobs,rainobs_lons,rainobs_lats=raingauge_obs(Myfiles_raingauge)
 zs_raingauge=produce_zonalstat_rg(rainobs,rainobs_lons,rainobs_lats,Myfiles_raingauge)
 rg_2d=zone_to_2d_raingauge(zs_raingauge)
 
-# #data_to_raster_rg(rainobs[0], rainobs_lons, rainobs_lats, "test_raingauge09.tif")
+#data_to_raster_rg(rainobs[0], rainobs_lons, rainobs_lats, "test_raingauge09.tif")
 
 #raingauge_plot(rainobs[0],rainobs_lons,rainobs_lats,world_map_file,"test",Myfiles_raingauge)
 raingauge_plot(rg_2d[0],grid_4326['xcoor'].values.reshape(156,184),grid_4326['ycoor'].values.reshape(156,184),world_map_file,"test",Myfiles_raingauge)

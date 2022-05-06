@@ -543,3 +543,32 @@ Created on Thu Mar 10 11:43:55 2022
 # produce_gifs_samegrid(severe_dates,"severerain")
 #########################################################################################################
 #########################################################################################################
+
+#Finding missing data in radar data
+# def datesearch(month):
+#     m=[31,28,31,30,31,30,31,31,30,31,30,31] #days in a month
+#     date_search=[]
+#     for i in np.arange(1,m[int(month)+1]+1,1):
+#         for j in np.arange(0,24,1):
+#             #for k in np.arange(0,60,1):
+#                 if len(str(i))<=1:
+#                     i=str(0)+str(i)
+#                 else:
+#                     i=str(i)
+#                 if len(str(j))<=1:
+#                     j=str(0)+str(j)
+#                 else:
+#                     j=str(j)
+#                 #if len(str(k))<=1:
+#                 #    k=str(0)+str(k)
+#                 #else:
+#                 #    k=str(k)
+#                 #if len(str(month))<=1:
+#                 #    mo=str(0)+str(month)
+#                 #else:
+#                 #    mo=str(month)
+#                 date_search.append(str(2021)+month+i+j)
+#     return date_search
+
+##########################################################################################################
+############################################################################

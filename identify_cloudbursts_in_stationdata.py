@@ -19,6 +19,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.backends.backend_pdf
 import glob
+import datetime as dt
 from datetime import datetime
 
 # I've tried getting background maps with these packages, but it wasn't as nice as "c"ontextily"
@@ -271,7 +272,7 @@ print("Time gone:",time.time()-start)
 
 #histogram
 base=severerain_days_2011_2021.iloc[0]['timeobs']
-date_list=[base+datetime.timedelta(days=x) for x in range(190)]
+date_list=[base+dt.timedelta(days=x) for x in range(190)]
 
 radar_data=[i[-10:-4] for i in glob.glob("./25grid/Radar/radar_20*.txt")]
 
@@ -304,19 +305,46 @@ for i in range(0,len(date_list)):
         data_availability.append(1)
     else:
         data_availability.append(0)
+combined_data=[]    
+combined_data=np.append(np.unique(datetime_nwp),np.unique(datetime_radar))
+counting=Counter(combined_data)
+new_combined=list([item for item in counting if counting[item]>1])
+
+combined_exceedances=np.append(severerain_days_2011_2021['timeobs'],cloudburst_days_2011_2021['timeobs'])
+counting_exceed=Counter(combined_exceedances)
+duplicate_exceedances=list([str(item.month)+str(item.day) for item in counting_exceed if counting_exceed[item]>1])
+duplicate_exceed_plot=list([item for item in counting_exceed if counting_exceed[item]>1])
+sole_severerain=[]
+for i in range(0,len(severerain_days_2011_2021['timeobs'])):
+    if str(severerain_days_2011_2021['timeobs'][i].month)+str(severerain_days_2011_2021['timeobs'][i].day) not in duplicate_exceedances:
+        sole_severerain.append(severerain_days_2011_2021['timeobs'][i])
+    else:
+        pass
     
+sole_cloudburst=[]
+for i in range(0,len(cloudburst_days_2011_2021['timeobs'])):
+    if str(cloudburst_days_2011_2021['timeobs'][i].month)+str(cloudburst_days_2011_2021['timeobs'][i].day) not in duplicate_exceedances:
+        sole_cloudburst.append(cloudburst_days_2011_2021['timeobs'][i])
+    else:
+        pass       
+
 
 fig,ax1=plt.subplots()
 ax2=ax1.twinx()
-#ax2=ax1.twiny()
-ax2.hist((np.unique(datetime_nwp),np.unique(datetime_radar)),stacked=True,bins=190,color=("darkolivegreen","green"),alpha=0.2)
+#ax3=ax1.twiny()
+#ax2.hist((np.unique(datetime_nwp),np.unique(datetime_radar)),stacked=True,bins=190,color=("darkolivegreen","green"),alpha=0.2)
+ax2.hist(np.unique(new_combined),bins=163,color=("green"),alpha=0.2)
 #ax2.plot(np.unique(datetime_nwp),np.repeat(1,len(np.unique(datetime_nwp))),"-")
-ax1.hist((np.unique(dates_severe),np.unique(dates_cloudburst)),color=("blue","violet"),stacked=False,bins=190) #There are 190 days between
-ax2.set_ylim(0,2)
-ax1.set_ylim(0,2)
+#ax1.hist((np.unique(dates_severe),np.unique(dates_cloudburst)),color=("blue","violet"),stacked=False,bins=190) #There are 190 days between
+ax1.hist((duplicate_exceed_plot, sole_severerain,sole_cloudburst),color=("mediumblue","gold","indianred"),stacked=True,bins=190) #There are 190 days between
+ax2.set_ylim(0,1)
+ax2.set_yticks([0,1],labels=["No","Yes"])
+#ax1.set_ylim(0,1)
+leg=ax1.legend(['Both','Severe rain','Cloudburst'],loc="upper right",framealpha=1)
+ax2.legend(['Data availability'],loc="upper left")
 ax1.set_xlabel('Date')
-ax1.set_ylabel('Exceeding threshold (yes=1, no=0)')
-ax2.set_ylabel('Data availability (yes=1, no=0)')
+ax1.set_ylabel('Number of rain gauge threshold exceedances')
+ax2.set_ylabel('NWP and radar data availability')
 plt.show()
 
 

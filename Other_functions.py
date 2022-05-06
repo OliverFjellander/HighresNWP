@@ -22,36 +22,13 @@ import collections
 from rasterstats import zonal_stats
 import pysteps.verification.spatialscores as pvs
 import pysteps.verification.salscores as pvs_sal
-#from skimage.feature import peak_local_max
 from pygeoprocessing import zonal_statistics
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+from matplotlib.colors import ListedColormap,LinearSegmentedColormap
+from bisect import bisect_left
 
 os.chdir("C:/Users/olive/Desktop/Speciale/Kode")
-
-#Finding missing data in radar data
-# def datesearch(month):
-#     m=[31,28,31,30,31,30,31,31,30,31,30,31] #days in a month
-#     date_search=[]
-#     for i in np.arange(1,m[int(month)+1]+1,1):
-#         for j in np.arange(0,24,1):
-#             #for k in np.arange(0,60,1):
-#                 if len(str(i))<=1:
-#                     i=str(0)+str(i)
-#                 else:
-#                     i=str(i)
-#                 if len(str(j))<=1:
-#                     j=str(0)+str(j)
-#                 else:
-#                     j=str(j)
-#                 #if len(str(k))<=1:
-#                 #    k=str(0)+str(k)
-#                 #else:
-#                 #    k=str(k)
-#                 #if len(str(month))<=1:
-#                 #    mo=str(0)+str(month)
-#                 #else:
-#                 #    mo=str(month)
-#                 date_search.append(str(2021)+month+i+j)
-#     return date_search
 
 
 ####################################
@@ -106,36 +83,36 @@ def plot_all_tst(radar_data,radar_data1,radar_data2,nwp_data,nwp_data1,nwp_data2
     
     # Make plot
     #world_map.plot(facecolor="lightgrey")
-    fig,axs=plt.subplots(3,3,sharex=True,sharey=True,figsize=(10,10),gridspec_kw={"width_ratios":[1,1,1]},constrained_layout=True)
+    fig,axs=plt.subplots(3,3,sharex=True,sharey=True,figsize=(10,15),gridspec_kw={"width_ratios":[1,1,1]},constrained_layout=True)
     fig.text(0.5,0.1,"Longitude",ha='center')
     fig.text(0.06,0.5,"Latitude",va='center',rotation='vertical')
     #fig.tight_layout(pad=3.0)
     world_map.plot(facecolor="lightgrey",ax=axs[0,0])
     pcm=axs[0,0].pcolor(radar_lons, radar_lats, radar_data, shading = "auto", alpha=1, cmap=cmap, norm=norm)
-    axs[0,0].set_xlim(7,15)
+    axs[0,0].set_xlim(7.5,13)
     axs[0,0].set_ylim(54.5,58)
     world_map.plot(facecolor="lightgrey",ax=axs[1,0])
     pcm=axs[1,0].pcolor(radar_lons, radar_lats, radar_data1, shading = "auto", alpha=1, cmap=cmap, norm=norm)
-    axs[1,0].set_xlim(7,15)
+    axs[0,0].set_xlim(7.5,13)
     axs[1,0].set_ylim(54.5,58)
     world_map.plot(facecolor="lightgrey",ax=axs[2,0])
     pcm=axs[2,0].pcolor(radar_lons, radar_lats, radar_data2, shading = "auto", alpha=1, cmap=cmap, norm=norm)
-    axs[2,0].set_xlim(7,15)
+    axs[0,0].set_xlim(7.5,13)
     axs[2,0].set_ylim(54.5,58)
     axs[0,0].title.set_text(plot_title_radar)
     axs[1,0].title.set_text(plot_title_radar1)
     axs[2,0].title.set_text(plot_title_radar2)
     world_map.plot(facecolor="lightgrey",ax=axs[0,1])
     pcm=axs[0,1].pcolor(nwp_lons, nwp_lats, nwp_data, shading = "auto", alpha=1, cmap=cmap, norm=norm)
-    axs[0,1].set_xlim(7,15)
+    axs[0,0].set_xlim(7.5,13)
     axs[0,1].set_ylim(54.5,58)
     world_map.plot(facecolor="lightgrey",ax=axs[1,1])
     pcm=axs[1,1].pcolor(nwp_lons, nwp_lats, nwp_data1, shading = "auto", alpha=1, cmap=cmap, norm=norm)
-    axs[1,1].set_xlim(7,15)
+    axs[0,0].set_xlim(7.5,13)
     axs[1,1].set_ylim(54.5,58)
     world_map.plot(facecolor="lightgrey",ax=axs[2,1])
     pcm=axs[2,1].pcolor(nwp_lons, nwp_lats, nwp_data2, shading = "auto", alpha=1, cmap=cmap, norm=norm)
-    axs[2,1].set_xlim(7,15)
+    axs[0,0].set_xlim(7.5,13)
     axs[2,1].set_ylim(54.5,58)
     axs[0,1].title.set_text(plot_title_nwp)
     axs[1,1].title.set_text(plot_title_nwp1)
@@ -146,7 +123,7 @@ def plot_all_tst(radar_data,radar_data1,radar_data2,nwp_data,nwp_data1,nwp_data2
     #axs[1].set_yticks([])
     world_map.plot(facecolor="lightgrey",ax=axs[0,2])
     pcm=axs[0,2].pcolor(nea_lons, nea_lats, nea_data, shading = "auto", alpha=1, cmap=cmap, norm=norm)
-    axs[0,2].set_xlim(7,15)
+    axs[0,0].set_xlim(7.5,13)
     axs[0,2].set_ylim(54.5,58)
     axs[0,2].title.set_text(plot_title_nea)
     axs[1,2].title.set_text(plot_title_nea1)
@@ -154,12 +131,12 @@ def plot_all_tst(radar_data,radar_data1,radar_data2,nwp_data,nwp_data1,nwp_data2
     axs[0,2].tick_params(axis='both',labelleft=False,left=False)
     world_map.plot(facecolor="lightgrey",ax=axs[1,2])
     pcm=axs[1,2].pcolor(nea_lons, nea_lats, nea_data1, shading = "auto", alpha=1, cmap=cmap, norm=norm)
-    axs[1,2].set_xlim(7,15)
+    axs[0,0].set_xlim(7.5,13)
     axs[1,2].set_ylim(54.5,58)
     axs[1,2].tick_params(axis='both',labelleft=False,left=False)
     world_map.plot(facecolor="lightgrey",ax=axs[2,2])
     pcm=axs[2,2].pcolor(nea_lons, nea_lats, nea_data2, shading = "auto", alpha=1, cmap=cmap, norm=norm)
-    axs[2,2].set_xlim(7,15)
+    axs[0,0].set_xlim(7.5,13)
     axs[2,2].set_ylim(54.5,58)
     axs[2,2].tick_params('y',labelleft=False,left=False)
     #cbar = fig.colorbar(pcm,ax=axs[:,2],fraction=0.040, pad=0.04)
@@ -210,18 +187,18 @@ def plot_all(radar_data,nwp_data,nea_data, radar_lons, radar_lats, nwp_lons, nwp
     cbar.ax.set_ylabel('Rainfall intensity [mm/h]', rotation=90)
     plt.subplots_adjust(wspace=0.05,hspace=0)
     plt.show()
-    #current=os.getcwd()
-    #os.chdir("C:/Users/olive/Desktop/Speciale/Kode/Pics/%s"%preciptype) 
-    #newpath=r'./%s/'%save_name[-6:-2]
-    #if not os.path.exists(newpath):
-    #    os.makedirs(newpath)
-    #os.chdir("C:/Users/olive/Desktop/Speciale/Kode/Pics/%s/%s"%(preciptype,newpath[-6:-1]))
-    #save_name=os.getcwd()+"/"+str(save_name[-2:])+"_"+str(timestep)
-    #if os.path.isfile(save_name):
-    #    os.remove(save_name)
-    #plt.savefig(save_name,bbox_inches='tight')
-    #plt.close()
-    #os.chdir(current)  
+    current=os.getcwd()
+    os.chdir("C:/Users/olive/Desktop/Speciale/Kode/Pics/%s"%preciptype) 
+    newpath=r'./%s/'%save_name[-6:-2]
+    if not os.path.exists(newpath):
+        os.makedirs(newpath)
+    os.chdir("C:/Users/olive/Desktop/Speciale/Kode/Pics/%s/%s"%(preciptype,newpath[-6:-1]))
+    save_name=os.getcwd()+"/"+str(save_name[-2:])+"_"+str(timestep)
+    if os.path.isfile(save_name):
+        os.remove(save_name)
+    plt.savefig(save_name,bbox_inches='tight')
+    plt.close()
+    os.chdir(current)  
 
 
 
@@ -385,123 +362,129 @@ def precipitation_days(days_found):
     return final_dates
 
 
-def Fractional_skillscore(zs_radar,zs_nwp,domain,intensity=0,percentile=0,plot=False):
+def Fractional_skillscore(zs_radar,zs_nwp,zs_nea,domain,date,intensity=0,percentile=0,plot=False):
     avg_fss=[[] for _ in range(len(zs_radar))]
+    avg_fss_nea=[[] for _ in range(len(zs_radar))]
     fssrandom=0
+    random_divide=0
     threshold_radar=[]
     qt_nwp=[[] for _ in range(len(zs_nwp))]
+    qt_nea=[[] for _ in range(len(zs_nea))]
     for i in range(0,len(zs_radar)):
         #start=time.time()
-        radar_grid_2d=np.reshape(extract_zonalstat(zs_radar[i]),(156,184))
-        nwp_grid_2d=np.reshape(extract_zonalstat(zs_nwp[i]),(156,184))
+        #radar_grid_2d=np.reshape(zs_radar[i],(156,184))
+        #nwp_grid_2d=np.reshape(zs_nwp[i],(156,184))
         
         #IF QUANTILE IS DEFINED
         if percentile!=0.0:
-            
-            threshold=np.quantile(radar_grid_2d,percentile)
-            qt=(nwp_grid_2d>np.quantile(np.nan_to_num(nwp_grid_2d),percentile))*1*(threshold)
-            threshold_radar.append(threshold_radar)
-            fssrandom+=np.sum((radar_grid_2d>0)*1)
+            radar_grid_2d=np.reshape(zs_radar[i],(156,184))
+            nwp_grid_2d=np.reshape(zs_nwp[i],(156,184))
+            nea_grid_2d=np.reshape(zs_nea[i],(156,184))
+            threshold=np.quantile(np.nan_to_num(radar_grid_2d),percentile)
+            qt=(nwp_grid_2d>=np.quantile(np.nan_to_num(nwp_grid_2d),percentile))*1*(threshold)
+            qt_n=(nea_grid_2d>=np.quantile(np.nan_to_num(nea_grid_2d),percentile))*1*(threshold)
+            #threshold_radar.append(threshold_radar)
+            #fssrandom+=np.sum((radar_grid_2d>0)*1)
             qt_nwp[i]=qt
+            qt_nea[i]=qt_n
             
+            #top=(zs_radar[i]>np.nanquantile(zs_radar[i],percentile)).sum()
+            #threshold=np.nanquantile(zs_radar[i],percentile)
+            #top_nwp=zs_nwp[i][np.argsort(-1*zs_nwp[i])[top-1:top][0]]
+            #qt=(zs_nwp[i]>=top_nwp)*1*(threshold)
+            #qt[qt==0]=np.nan
+            #radar_grid_2d=np.reshape(zs_radar[i],(156,184))
+            #nwp_grid_2d=np.reshape(qt,(156,184))
+            #threshold_radar.append(threshold_radar)
+            fssrandom=1.0-percentile
+            random_divide=1.0
+            #qt_nwp[i]=qt
             if plot==False:
+                #avg_fss[i]=(pvs.fss(nwp_grid_2d,radar_grid_2d,threshold,domain))
                 avg_fss[i]=(pvs.fss(qt,radar_grid_2d,threshold,domain))
+                avg_fss_nea[i]=(pvs.fss(qt_n,radar_grid_2d,threshold,domain))
             else:
                 for scale in range(0,domain):
+                    #avg_fss[i].append(pvs.fss(nwp_grid_2d,radar_grid_2d,threshold,scale))
                     avg_fss[i].append(pvs.fss(qt,radar_grid_2d,threshold,scale))
+                    avg_fss_nea[i].append(pvs.fss(qt_n,radar_grid_2d,threshold,scale))
         
         elif intensity!=0.0:
+            radar_grid_2d=np.reshape(zs_radar[i],(156,184))
+            nwp_grid_2d=np.reshape(zs_nwp[i],(156,184))
+            nea_grid_2d=np.reshape(zs_nea[i],(156,184))
             nwp_grid_2d[nwp_grid_2d==0]=np.nan
             radar_grid_2d[radar_grid_2d==0]=np.nan
+            nea_grid_2d[nea_grid_2d==0]=np.nan
         
-            fssrandom+=np.sum((radar_grid_2d>0)*1)
+            fssrandom+=np.sum((zs_radar[i]>intensity)*1)
+            random_divide+=len(zs_radar[i])
         
             #print(time.time()-start)
             if plot==False:
                 avg_fss[i]=(pvs.fss(nwp_grid_2d,radar_grid_2d,intensity,domain))
+                avg_fss_nea[i]=(pvs.fss(nea_grid_2d,radar_grid_2d,intensity,domain))
             else: 
                 for scale in range(0,domain):
                     avg_fss[i].append(pvs.fss(nwp_grid_2d,radar_grid_2d,intensity,scale))
+                    avg_fss_nea[i].append(pvs.fss(nea_grid_2d,radar_grid_2d,intensity,scale))  
         else:
             print("Error. Intensity or percentile needs to be defined")
             break
         
+
     if plot==False:
-        return avg_fss
+        return avg_fss,avg_fss_nea,fssrandom/random_divide
     else:
-        fssrandom=np.repeat(fssrandom/(np.size(radar_grid_2d)*len(zs_radar)),domain)
-    
-        FSS_mean=[np.mean(k) for k in zip(*avg_fss)]
-        t_dist=2.306
+        FSS_mean_nwp=[np.mean(k) for k in zip(*avg_fss)]
+        FSS_mean_nea=[np.mean(k) for k in zip(*avg_fss_nea)]
+        nwp_useful=2.5*bisect_left(FSS_mean_nwp,0.5+(fssrandom/random_divide)/2)
+        nea_useful=2.5*bisect_left(FSS_mean_nea,0.5+(fssrandom/random_divide)/2)
+        fssrandom=np.repeat(fssrandom/random_divide,domain)
+    return FSS_mean_nwp, FSS_mean_nea, fssrandom/random_divide #TEMPORARY
+        #t_dist=2.306
         #ci_low=[np.mean(k)-((np.std(k)/np.sqrt(len(avg_fss)))*t_dist) for k in zip(*avg_fss)]
         #ci_high=[np.mean(k)+((np.std(k)/np.sqrt(len(avg_fss)))*t_dist) for k in zip(*avg_fss)]
-        low=[np.nanmin(k) for k in zip(*avg_fss)]
-        high=[np.nanmax(k) for k in zip(*avg_fss)]
+        #low=[np.nanmin(k) for k in zip(*avg_fss)]
+        #high=[np.nanmax(k) for k in zip(*avg_fss)]
         plt.figure()
-        plt.fill_between(np.arange(0,domain,1)*2.5,low,high,alpha=0.5,color="grey")
-        plt.plot(np.arange(0,domain,1)*2.5,FSS_mean)
-        plt.plot(np.arange(0,domain,1)*2.5,fssrandom)
-        plt.plot(np.arange(0,domain,1)*2.5,0.5+fssrandom/2)
+        #plt.fill_between(np.arange(0,domain,1)*2.5,low,high,alpha=0.5,color="grey")
+        plt.plot(np.arange(0,domain,1)*2.5,FSS_mean_nwp,":",color="darkblue")
+        plt.plot(np.arange(0,domain,1)*2.5,FSS_mean_nea,"--",color="royalblue")
+        plt.plot(np.arange(0,domain,1)*2.5,fssrandom,color="firebrick")
+        plt.plot(np.arange(0,domain,1)*2.5,0.5+fssrandom/2,color="limegreen")
+        plt.text(10,0.95,"Scale above FSS uniform. \nDK 750: %s km \nNEA 2500: %s km"%(int(np.round(nwp_useful)),int(np.round(nea_useful))),bbox=dict(boxstyle="round",facecolor="white"))
         plt.ylim(0,1.1)
+        plt.xlim(0,800)
         plt.xlabel("Horizontal Scale [km]")
         plt.ylabel("Fractional Skill Score")
-        plt.legend(["Span","0.75km","FSS random","FSS useful"],loc="lower right")
+        plt.title(date[4:6]+"/"+date[2:4])
+        plt.legend(["DK 750","NEA 2500","FSS random","FSS uniform"],loc="lower right")
         plt.show()
     
-        plt.figure()
-        for i in range(0,len(avg_fss)):
-            plt.plot(np.arange(0,domain,1)*2.5,avg_fss[i])
-        plt.plot(np.arange(0,domain,1)*2.5,fssrandom)
-        plt.plot(np.arange(0,domain,1)*2.5,0.5+fssrandom/2)
-        plt.ylim(0,1.1)
-        plt.xlabel("Horizontal Scale [km]")
-        plt.ylabel("Fractional Skill Score")
-        plt.legend(["1","2","3","4","5","6","7","8","9","FSS random","FSS uniform"],loc=0)
-        plt.show()
-    return avg_fss
+    return FSS_mean_nwp, FSS_mean_nea, fssrandom/random_divide
 
-#Intensity and spatial array should be given in some logspace array.
+#Spatial array should be given in some logspace array. Intensity array linear
 #spatial scale should go from high to low, intensity array the other way around
-def plot_spatial_threshold_matrix(intensity_array,spatial_array,zt_radar,zt_nwp):  
+def plot_spatial_threshold_matrix(intensity_array,spatial_array,zt_radar,zt_nwp,zt_nea):  
     fss=np.zeros((len(spatial_array),(len(intensity_array))))
-    start=time.time()
+    fss_random=[[] for _ in range(len(intensity_array))]
     for i in range(0,len(spatial_array)):
-        print(time.time()-start)
         domain=spatial_array[i]
         for j in range(0,len(intensity_array)):
             precipitation=intensity_array[j]
-            fss[i,j]=np.mean(Fractional_skillscore(zt_radar,zt_nwp,domain,intensity=precipitation))
-
-    fig=plt.figure()
-    ax=fig.add_subplot(1,1,1)
-    #cmap = colors.ListedColormap(["#85E3E4", '#42D8D8', '#42AFD8', '#4282D8', "#FFE600", '#FFAF00', '#FF5050', '#FF1A1A', "#BD0000", "#8C0000"])
-    cmap = colors.ListedColormap(["orangered","orange","gold","yellow","limegreen","forestgreen"])
-    boundaries = [0.0, 0.2, 0.4,0.6, 0.8,0.9, 1.0]
-    norm=colors.BoundaryNorm(boundaries, cmap.N, clip=True)
-    ax.set_xscale('log')
-    ax.set_yscale('log')
-    plt.pcolor(intensity_array, spatial_array, fss, shading = "auto", alpha=1, cmap=cmap, norm=norm)
-    cbar = plt.colorbar(fraction=0.046, pad=0.04)
-    cbar.ax.set_ylabel('Fractional Skill Score (FSS)', rotation=90)
-    plt.xticks(np.round(intensity_array))
-    plt.yticks([10,50,100,200])
-    ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
-    ax.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
-    ax.get_xaxis().set_tick_params(which='minor', size=0)
-    ax.get_xaxis().set_tick_params(which='minor', width=0) 
-    plt.xlabel("Intensity [mm/hr]")
-    plt.ylabel("Scale [km]")
-    plt.show()
+            fss_temp,fss_throw,fss_random[j]=Fractional_skillscore(zt_radar,zt_nwp,domain,None,zt_nea,intensity=precipitation)
+            fss[i,j]=np.nanmean(fss_temp)
+    return fss,fss_random
 
 def produce_SAL(radar,nwp):
     #loc_dict={'minref':5,'maxref':100,'minsize':2,'mindis':5,'minmax': 10}
     loc_dict={'minref':3.0,'maxref':100,'minsize':1,'mindis':3,'minmax': 4,'mindiff':2}
     amp=[]
     struc=[]
-    #struc=np.empty((0,len(radar)))
     loca=[]
-    l1_tst=[]
-    l_tst=[]
+    #l1_tst=[]
+    #l_tst=[]
     for i in range(0,len(radar)):
         #print(pvs_sal.sal(nwp[i].transpose(1,0),radar[i].transpose(1,0),thr_factor=None,thr_quantile=None,tstorm_kwargs=loc_dict))
         l1=pvs_sal._sal_l1_param(nwp[i].transpose(1,0),radar[i].transpose(1,0))
@@ -509,27 +492,32 @@ def produce_SAL(radar,nwp):
         amp.append(pvs_sal.sal_amplitude(nwp[i].transpose(1,0),radar[i].transpose(1,0)))
         struc.append(pvs_sal.sal_structure(nwp[i].transpose(1,0),radar[i].transpose(1,0),tstorm_kwargs=loc_dict))
         loca.append(np.nansum((l1,l2)))
-        print(l1,l2)
-        
+        #print(l1,l2)
         #max_dis_tst=np.sqrt(((radar[i].transpose(1,0).shape[0]) ** 2) + ((radar[i].transpose(1,0).shape[1]) ** 2))
         #obs_r=pvs_sal._sal_weighted_distance(nwp[i].transpose(1,0),thr_factor=None,thr_quantile=None,tstorm_kwargs=loc_dict)/(np.nanmean(nwp[i]))
         #forc_r=pvs_sal._sal_weighted_distance(radar[i].transpose(1,0),thr_factor=None,thr_quantile=None,tstorm_kwargs=loc_dict)/(np.nanmean(radar[i]))
         #print(2 * ((abs(obs_r - forc_r)) / max_dis_tst))
         #l2_tst=(2 * ((abs(obs_r - forc_r)) / max_dis_tst))
         #l_tst.append(np.nansum(l1,l2_tst))
-
     return struc,amp,loca
 
 def plot_SAL(s,a,l,title):
     plt.figure()
-    cm=plt.cm.get_cmap('coolwarm')
+    #cm=plt.cm.get_cmap('coolwarm')
+    #cm=LinearSegmentedColormap.from_list("test",[(0,1,0),(1,1,0),(1,0,0)],N=100)
+    #cm=colors.ListedColormap(["#41ab4d","#ffeda0","#fc4e2a"])
+    cm=colors.ListedColormap(["limegreen","yellowgreen","orange","firebrick"])
     plt.axhline(0,0,color="black",alpha=0.5)
     plt.axvline(0,0,color="black",alpha=0.5)
     plt.axhline(np.median(a),0,color="red",alpha=0.5)
-    plt.axvline(np.median(s),0,color="red",alpha=0.5)
-    sc=plt.scatter(s,a,c=l,vmin=0,vmax=2,cmap=cm,zorder=2)
+    plt.axvline(np.nanmedian(s),0,color="red",alpha=0.5)
+    #sc=plt.scatter(s,a,c=l,vmin=0,vmax=2,cmap=cm,zorder=2)
     for i in range(0,len(s)):
-        plt.text(s[i],a[i],str(i))
+        sc=plt.scatter(s[i],a[i],c=l[i],vmin=0,vmax=2,cmap=cm,zorder=2)
+        #sc=plt.scatter(s[i],a[i],c=np.arange(1,7,1),vmin=1,vmax=6,cmap=cm,zorder=2)
+        #for j in range(2,6):
+            #sc=plt.scatter(s[i][j],a[i][j],c=l[i][j],vmin=0,vmax=2,cmap=cm,zorder=2)
+            #plt.text(s[i][j],a[i][j],str(j))
     plt.xlim(-2,2)
     plt.ylim(-2,2)
     plt.xlabel("Structure")

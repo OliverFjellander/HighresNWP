@@ -65,6 +65,7 @@ from osgeo import osr
 from pygeoprocessing import zonal_statistics
 from skimage import data, io, filters
 from scipy.ndimage.measurements import center_of_mass
+from matplotlib.ticker import MultipleLocator, ScalarFormatter
 #start_start=time.time()
 
 ###########################################################################
@@ -107,6 +108,8 @@ lats_25=np.array(coor_4326['ycoor']).reshape((156,184))
 #Retrieve:
 cloudburst_days=np.genfromtxt("./cloudburstdays.txt",dtype='str')
 severe_days=np.genfromtxt("./severedays.txt",dtype='str')
+extreme_days=np.genfromtxt("./extremerain.txt",dtype='str')
+rainy_days=np.genfromtxt("./rainydays.txt",dtype='str')
 
 def precipitation_days(days_found):
     dates=[]
@@ -129,9 +132,190 @@ def precipitation_days(days_found):
 
 cloudburst_dates=precipitation_days(cloudburst_days)
 severe_dates=precipitation_days(severe_days)
+extreme_dates=precipitation_days(extreme_days)
+rainy_dates=precipitation_days(rainy_days)
+rainy_dates=[x for x in rainy_dates if x not in extreme_dates]
 
-def produce_gifs_samegrid(dates):
+def produce_FSS_matrix(dates,model,threshold):
     os.chdir("C:/Users/olive/Desktop/Speciale/Kode") 
+    fss_collect=[[] for _ in range(len(np.unique(dates)))]
+    random_collect=[[] for _ in range(len(np.unique(dates)))]
+    for i in range(0,len(np.unique(dates))):
+        date=str(np.unique(dates)[i])
+        try:
+            load_radar=np.loadtxt("./25grid/Radar/radar_20%s.txt"%date[:-2])
+        except FileNotFoundError:
+            continue
+
+        load_NEA=np.loadtxt("./25grid/NEA/nea_2d_%s.txt"%date)
+        load_nwp=np.loadtxt("./25grid/NWP750/nwp_2d_%s.txt"%date)
+        load_radar=np.loadtxt("./25grid/Radar/radar_20%s.txt"%date[:-2])
+        #print(date)
+        
+        #orig_nea=load_NEA.reshape(load_NEA.shape[0],load_NEA.shape[1] // 184, 184)
+        orig_nea=load_NEA.reshape(load_NEA.shape[0],load_NEA.shape[1])
+        #orig_nwp=load_nwp.reshape(load_nwp.shape[0],load_nwp.shape[1] // 184, 184)
+        orig_nwp=load_nwp.reshape(load_nwp.shape[0],load_nwp.shape[1])
+        #orig_radar=load_radar.reshape(load_radar.shape[0],load_radar.shape[1] // 184, 184)
+        orig_radar=load_radar.reshape(load_radar.shape[0],load_radar.shape[1])
+        spatial_scale=[2.5,5,10,20,40,80,160,320]
+        if threshold=="Precipitation":
+            intensity_scale=[0.5,2.5,4.5,6.5,8.5,10.5,12.5,14.5]
+        elif threshold=="Extreme Precipitation":
+            intensity_scale=[2.5,5,7.5,10,12.5,15,17.5,20]
+        elif threshold=="Cloudbursts":
+            intensity_scale=[2.5,5,7.5,10,12.5,15,17.5,20]
+        elif threshold=="Severe Rain":
+            intensity_scale=[2.5,5,7.5,10,12.5,15,17.5,20]
+        else:
+            return("Threshold needs to be either Precipitation or Extreme Precipitation")
+        if model=="NEA":
+            fss_collect[i],random_collect[i]=plot_spatial_threshold_matrix(intensity_scale,spatial_scale,orig_radar[int(date[-2:]):int(date[-2:])+6],orig_nea,orig_nwp)
+        elif model=="DK750":
+            fss_collect[i],random_collect[i]=plot_spatial_threshold_matrix(intensity_scale,spatial_scale,orig_radar[int(date[-2:]):int(date[-2:])+6],orig_nwp,orig_nea)
+        else:
+            return("Model needs to be either NEA or DK750")
+    fss_collect=[x for x in fss_collect if x!=[]]
+    random_collect=[x for x in random_collect if x!=[]]
+    fss_array=np.stack(fss_collect, axis=-1) 
+    #fss_min=np.nanmin(fss_array,axis=-1)
+    #fss_max=np.nanmax(fss_array,axis=-1)
+    fss_array=np.nanmean(fss_array,axis=-1)
+    random_array=[np.mean(k) for k in zip(*random_collect)]
+    fig=plt.figure()
+    ax=fig.add_subplot(1,1,1)
+    cmap = colors.ListedColormap(["darkred","firebrick","orangered","orange","gold","yellow","greenyellow","limegreen","forestgreen","green"])
+    boundaries = [0.0, 0.1,0.2,0.3, 0.4,0.5, 0.6,0.7, 0.8, 0.9, 1.0]
+    norm=colors.BoundaryNorm(boundaries, cmap.N, clip=True)
+    ax.set_yscale('log')
+    plt.pcolor(intensity_scale, spatial_scale, fss_array, shading = "auto", alpha=1, cmap=cmap, norm=norm)
+    #ax.grid(True, axis='both', linestyle='-', color='k')
+    cbar = plt.colorbar(fraction=0.046, pad=0.04)
+    cbar.ax.set_ylabel('Fractional Skill Score (FSS)', rotation=90)
+    for i in range(0,len(intensity_scale)):
+        for j in range(0,len(spatial_scale)):
+            if fss_array[j,i]>0.1:    
+                if fss_array[j,i]>=(0.5+random_array[i]/2):
+                    ax.text(intensity_scale[i], spatial_scale[j],'{:0.2f}'.format((fss_array[j,i])), ha='center', va='center',size="small",weight="bold")
+                else:
+                    ax.text(intensity_scale[i], spatial_scale[j],'{:0.2f}'.format((fss_array[j,i])), ha='center', va='center',size="small")
+            else:
+                pass
+    plt.xticks(intensity_scale)
+    plt.yticks(spatial_scale)
+    ax.get_xaxis().set_major_formatter(ticker.ScalarFormatter())
+    ax.get_yaxis().set_major_formatter(ticker.ScalarFormatter())
+    ax.get_xaxis().set_tick_params(which='minor', size=0)
+    ax.get_xaxis().set_tick_params(which='minor', width=0) 
+    ax.get_yaxis().set_tick_params(which='minor', size=0)
+    ax.get_yaxis().set_tick_params(which='minor', width=0) 
+    plt.xlabel("Intensity [mm/hr]")
+    plt.ylabel("Scale [km]")
+    plt.title(model+" "+threshold)
+    plt.show()
+
+produce_FSS_matrix(cloudburst_dates,"NEA","Cloudbursts")
+produce_FSS_matrix(cloudburst_dates,"DK750","Cloudbursts")
+produce_FSS_matrix(extreme_dates,"NEA","Extreme Precipitation")
+produce_FSS_matrix(extreme_dates,"DK750","Extreme Precipitation")
+produce_FSS_matrix(rainy_dates,"NEA","Precipitation")
+produce_FSS_matrix(rainy_dates,"DK750","Precipitation")
+produce_FSS_matrix(severe_dates,"NEA","Severe Rain")
+produce_FSS_matrix(severe_dates,"DK750","Severe Rain")
+
+#Quantiles
+fss_qt,fss_qt_nea,random_qt=Fractional_skillscore(orig_radar[6:12],orig_nwp,orig_nea,366,date,percentile=0.999,plot=True)
+2.5*bisect_left(fss_qt,0.5+(random_qt[0]/2))
+
+def produce_fss_percentiles(dates,percentile,plot=True):
+    fss_nwp=[[] for _ in range(len(np.unique(dates)))]
+    fss_nea=[[] for _ in range(len(np.unique(dates)))]
+    scalemin_nwp=[]
+    scalemin_nea=[]
+    full_day=Counter([str(i)[:-2] for i in np.unique(dates)])
+    for i in range(0,len(np.unique(dates))):
+        date=str(np.unique(dates)[i])
+        if date[:-2]==str(np.unique(dates)[i-1])[:-2]:
+            pass
+        else:
+            
+            try:
+                load_radar=np.loadtxt("./25grid/Radar/radar_20%s.txt"%date[:-2])
+            except FileNotFoundError:
+                continue
+        
+            load_NEA=np.loadtxt("./25grid/NEA/nea_2d_%s.txt"%date)[0:6]
+            load_nwp=np.loadtxt("./25grid/NWP750/nwp_2d_%s.txt"%date)[0:6]
+            load_radar=np.loadtxt("./25grid/Radar/radar_20%s.txt"%date[:-2])
+        
+            if full_day[date[:-2]]>1:
+                radar_list=[]
+                orig_radar=load_radar.reshape(load_radar.shape[0],load_radar.shape[1])
+                radar_concat=orig_radar[int(date[-2:]):int(date[-2:])+6]
+                for times in range(0,full_day[date[:-2]]):
+                    date_new=str(np.unique(dates)[i+1])
+                    load_NEA=np.concatenate((load_NEA,np.loadtxt("./25grid/NEA/nea_2d_%s.txt"%date_new)[0:6]),axis=0)
+                    load_nwp=np.concatenate((load_nwp,np.loadtxt("./25grid/NWP750/nwp_2d_%s.txt"%date_new)[0:6]),axis=0)
+                
+                    radar_list.append(date_new[-2:])
+                
+                orig_nea=load_NEA.reshape(load_NEA.shape[0],load_NEA.shape[1])
+                orig_nwp=load_nwp.reshape(load_nwp.shape[0],load_nwp.shape[1])
+    
+                for k in range(0,len(radar_list)):    
+                    radar_concat=np.concatenate((radar_concat,orig_radar[int(radar_list[k]):int(radar_list[k])+6]),axis=0)
+        
+                fss_qt,fss_qt_nea,random_qt=Fractional_skillscore(radar_concat,orig_nwp,orig_nea,366,date,percentile=percentile,plot=plot)
+                scalemin_nwp.append(2.5*bisect_left(fss_qt,0.5+(random_qt[0]/2)))
+                scalemin_nea.append(2.5*bisect_left(fss_qt_nea,0.5+(random_qt[0]/2)))
+            else:
+            
+                #print(date)
+        
+                #orig_nea=load_NEA.reshape(load_NEA.shape[0],load_NEA.shape[1] // 184, 184)
+                orig_nea=load_NEA.reshape(load_NEA.shape[0],load_NEA.shape[1])
+                #orig_nwp=load_nwp.reshape(load_nwp.shape[0],load_nwp.shape[1] // 184, 184)
+                orig_nwp=load_nwp.reshape(load_nwp.shape[0],load_nwp.shape[1])
+                #orig_radar=load_radar.reshape(load_radar.shape[0],load_radar.shape[1] // 184, 184)
+                orig_radar=load_radar.reshape(load_radar.shape[0],load_radar.shape[1])
+                fss_qt,fss_qt_nea,random_qt=Fractional_skillscore(orig_radar[int(date[-2:]):int(date[-2:])+6],orig_nwp,orig_nea,366,date,percentile=percentile,plot=plot)
+                scalemin_nwp.append(2.5*bisect_left(fss_qt,0.5+(random_qt[0]/2)))
+                scalemin_nea.append(2.5*bisect_left(fss_qt_nea,0.5+(random_qt[0]/2)))
+    return np.array(scalemin_nwp),np.array(scalemin_nea)
+
+scalemin_nwp=[]
+scalemin_nea=[]
+for i in np.arange(0.99,0.99999,0.0005):
+    temp_nwp,temp_nea=produce_fss_percentiles(extreme_dates,i,plot=True)
+    temp_nwp[temp_nwp>=914]=np.nan
+    temp_nea[temp_nea>=914]=np.nan
+    scalemin_nwp.append(temp_nwp)
+    scalemin_nea.append(temp_nea)
+    print(i)
+
+nwp_meanscale=[np.nanmean(k) for k in scalemin_nwp]
+nea_meanscale=[np.nanmean(k) for k in scalemin_nea]
+
+plt.plot(np.arange(0.99,0.99999,0.0005),nwp_meanscale)
+plt.plot(np.arange(0.99,0.99999,0.0005),nea_meanscale)
+
+#Confusion matrix
+#cm_day,ETS,PSS,FBI,TPR,TS,FPR,hit,miss,tot=confusion_mat(rg_2d,nwp_2d)
+
+#plt.plot(hit)
+#plt.plot(miss)
+
+#plt.plot(np.arange(0,1.1,0.1),np.arange(0,1.1,0.1))
+#plt.scatter(FPR,TPR)
+#plt.xlim([0,1])
+#plt.ylim([0,1])
+
+#SAL
+def SAL_output(dates,model,threshold):
+    os.chdir("C:/Users/olive/Desktop/Speciale/Kode") 
+    struc=[[] for _ in range(len(np.unique(dates)))]
+    amp=[[] for _ in range(len(np.unique(dates)))]
+    loca=[[] for _ in range(len(np.unique(dates)))]
     for i in range(0,len(np.unique(dates))):
         date=str(np.unique(dates)[i])
         try:
@@ -143,47 +327,26 @@ def produce_gifs_samegrid(dates):
         load_nwp=np.loadtxt("./25grid/NWP750/nwp_2d_%s.txt"%date)
         load_radar=np.loadtxt("./25grid/Radar/radar_20%s.txt"%date[:-2])
 
-        #orig_nea=load_NEA.reshape(load_NEA.shape[0],load_NEA.shape[1] // 184, 184)
-        orig_nea=load_NEA.reshape(load_NEA.shape[0],load_NEA.shape[1])
+        orig_nea=load_NEA.reshape(load_NEA.shape[0],load_NEA.shape[1] // 184, 184)
+        #orig_nea=load_NEA.reshape(load_NEA.shape[0],load_NEA.shape[1])
         orig_nwp=load_nwp.reshape(load_nwp.shape[0],load_nwp.shape[1] // 184, 184)
-        #orig_radar=load_radar.reshape(load_radar.shape[0],load_radar.shape[1] // 184, 184)
-        orig_radar=load_radar.reshape(load_radar.shape[0],load_radar.shape[1])
+        orig_radar=load_radar.reshape(load_radar.shape[0],load_radar.shape[1] // 184, 184)
+        if model=="NEA":
+            struc[i],amp[i],loca[i]=produce_SAL(orig_radar[int(date[-2:]):int(date[-2:])+6],orig_nea)
+        elif model=="DK750":
+            struc[i],amp[i],loca[i]=produce_SAL(orig_radar[int(date[-2:]):int(date[-2:])+6],orig_nwp)
+    struc=[x for x in struc if x!=[]]
+    amp=[x for x in amp if x!=[]]
+    loca=[x for x in loca if x!=[]]
+        #print("Structure: %s"%struc)
+        #print("Amplitude: %s"%amp)
+        #print("Location: %s"%loca)
+    title=model+" "+threshold
+    plot_SAL(struc,amp,loca,title)
         
-        intensity_scale=[1,2.5,5,10,25]
-        spatial_scale=[1,2.5,5,10,25,50,100,200]
-        plot_spatial_threshold_matrix(intensity_scale,spatial_scale,orig_radar[12:18],orig_nea)
-
-produce_gifs_samegrid(cloudburst_dates)
-
-#intensity_scale=np.logspace(0.1,1.6,9)
-#spatial_scale=np.logspace(2.5,1,10)
-plot_spatial_threshold_matrix(intensity_scale,spatial_scale,zs_radar,zs_nwp)
-
-#Quantiles
-
-#fss_qt=Fractional_skillscore(zs_radar,zs_nwp,297,percentile=0.95,plot=True)
-#fss=Fractional_skillscore(zs_radar,zs_nwp,296,intensity=10,plot=True)
-
-#Confusion matrix
-cm_day,ETS,PSS,FBI,TPR,TS,FPR,hit,miss,tot=confusion_mat(rg_2d,nwp_2d)
-
-plt.plot(hit)
-plt.plot(miss)
-
-plt.plot(np.arange(0,1.1,0.1),np.arange(0,1.1,0.1))
-plt.scatter(FPR,TPR)
-plt.xlim([0,1])
-plt.ylim([0,1])
-
-#SAL
-
-struc,amp,loca=produce_SAL(radar_2d,nwp_2d)
-print("Structure: %s"%struc)
-print("Amplitude: %s"%amp)
-print("Location: %s"%loca)
-
-plot_SAL(struc,amp,loca,save_name)
-
+SAL_output(extreme_dates,"NEA","cloudbursts")
+SAL_output(extreme_dates,"DK750","cloudbursts")
+    
 
 #########################TEST
 loc_dict={'minref':3.0,'maxref':100,'minsize':1,'mindis':3,'minmax': 4,'mindiff':2}
