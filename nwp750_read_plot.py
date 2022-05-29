@@ -5,26 +5,16 @@ Created on Fri Jan 28 08:41:10 2022
 @author: olive
 """
 
-import tarfile
-import os
-import gzip
 import pygrib
 import numpy as np
 import geopandas as gpd
 import matplotlib.pyplot as plt
 from matplotlib import colors
-import glob
 import time
 import pandas as pd
-from PIL import Image
-import imageio
-import rasterio
-import rioxarray as rxr
-from osgeo import gdal
-from osgeo import osr
+from osgeo import gdal,osr
 from pyproj import Transformer
-import csv
-import fiona
+
 
 def read_parameter_info(parameter_list, param_number):
     ''' Takes a number for the parameter of interest, 
@@ -94,35 +84,7 @@ def nwp_plot(rain_array, lons, lats, plot_title,file,coordinates,file_input):
     cbar.ax.set_ylabel('Rainfall intensity [mm/h]', rotation=90)
     plt.xlim(6,16) #7,15 longitudes for Denmark (for a zoomed plot)
     plt.ylim(53,59) #54,5 , 58 lattitudes for Denmark (for a zoomed plot)
-    #plt.xlim(coordinates[0],coordinates[1])
-    #plt.ylim(coordinates[2],coordinates[3])
-    plt.xlabel("Longitude")
-    plt.ylabel("Latitude")
-    plt.title(plot_title)
-    #save_name="./Pics/%s.png"%file_input[-3:]
-    #if os.path.isfile(save_name):
-    #    os.remove(save_name)
-    #plt.savefig(save_name,bbox_inches='tight')
-    #plt.close()
-    
-def nwp_plot_tst(rain_array, lons, lats, plot_title,file,coordinates,file_input):
-    ''' Function that plots gridded NWP data'''
-    world_map = gpd.read_file(file)
-    
-    # create custom color map
-    cmap = colors.ListedColormap(["#85E3E4", '#42D8D8', '#42AFD8', '#4282D8', "#FFE600", '#FFAF00', '#FF5050', '#FF1A1A', "#BD0000", "#8C0000"])
-    #boundaries = [0, .5, 1, 2, 3, 4, 5, 7.5, 10, 15, 20]
-    boundaries = [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
-    norm = colors.BoundaryNorm(boundaries, cmap.N, clip=True)
-    
-    world_map.plot(facecolor="lightgrey")
-    plt.pcolor(lons, lats, rain_array, shading = "auto", alpha=0.8, cmap=cmap, norm=norm)
-    cbar = plt.colorbar(fraction=0.046, pad=0.04)
-    cbar.ax.set_ylabel('Fraction', rotation=90)
-    #plt.xlim(7,15) # longitudes for Denmark (for a zoomed plot)
-    #plt.ylim(54.5,58) # lattitudes for Denmark (for a zoomed plot)
-    plt.xlim(coordinates[0],coordinates[1])
-    plt.ylim(coordinates[2],coordinates[3])
+
     plt.xlabel("Longitude")
     plt.ylabel("Latitude")
     plt.title(plot_title)
@@ -133,24 +95,7 @@ def nwp_plot_tst(rain_array, lons, lats, plot_title,file,coordinates,file_input)
     #plt.close()
     
 
-def open_n_plot(Data,removal_threshold,world_file,coordinates):
-    previous_accum=pd.DataFrame(np.zeros((630,700)))
-    for i in range(1,len(Data)):
-        start=time.time()
-        open_file = pygrib.open(Data[i])
-        parameters=open_file.read()
-        attributes=read_parameter_info(parameters,58)
-        #threshold_new=1
-        attributes['values']=remove_values_below(attributes['values'],removal_threshold)
-        values_plot=pd.DataFrame(attributes['values']).fillna(0)-previous_accum
-        values_plot=values_plot.replace(0,np.nan)
-        values_plot=remove_values_below(values_plot,removal_threshold)
-        nwp_plot(values_plot,attributes['lons'],attributes['lats'],"Rainfall field %2d - %s:00 UTC"%(attributes['date'],int(Data[i][-6:-4])+int(Data[i][-1:])),world_file,coordinates,Data[i])
-        previous_accum=pd.DataFrame(attributes['values']).fillna(0)
-        print(time.time()-start)
-    return values_plot
-
-def open_not_plot(Data,removal_threshold,world_file,coordinates):
+def unaccumulate(Data,removal_threshold,world_file,coordinates):
     previous_accum=pd.DataFrame(np.zeros((630,700)))
     rain={}
     for i in range(1,len(Data)):
@@ -158,7 +103,6 @@ def open_not_plot(Data,removal_threshold,world_file,coordinates):
         parameters=open_file.read()
         attributes=read_parameter_info(parameters,58)
         #threshold_new=1
-        attributes['values']=remove_values_below(attributes['values'],removal_threshold)
         values_plot=pd.DataFrame(attributes['values']).fillna(0)-previous_accum
         values_plot=values_plot.replace(0,np.nan)
         values_plot=remove_values_below(values_plot,removal_threshold)
@@ -166,31 +110,6 @@ def open_not_plot(Data,removal_threshold,world_file,coordinates):
         rain[i]=values_plot
     return rain 
 
-
-# # Make a raster that the data can be inserted into. Produces a tiff file.
-# def data_array_to_raster_nwp(data_array, tif_path):
-#     #transform = rasterio.transform.from_origin(-180518.4109, 225640.8505, 750, 750) # define coordinates for the DMI grid
-#     #proj4string_dmistere = '+proj=stere +ellps=WGS84 +lat_0=56 +lon_0=10.5666 +lat_ts=56' # The raw data's projection
-#     transform = rasterio.transform.from_origin(7.515165,57.989784,0.011752375714285715,0.006986698412698415) # define coordinates for the DMI grid
-#     proj4string_dmistere = "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs " # The raw data's projection
-
-#     # Produce raster with rasterio package
-#     with rasterio.open(tif_path, 'w', driver='GTiff',
-#                        height = data_array.shape[0], width = data_array.shape[1],
-#                        count=1, dtype=str(data_array.dtype),
-#                        crs=proj4string_dmistere,
-#                        transform=transform) as file:
-#         file.write(data_array, 1)
-    
-#     raster_array = rxr.open_rasterio('./{}'.format(tif_path),tif_path).squeeze() # load data
-    
-#     with rxr.open_rasterio(tif_path) as file:
-#         raster_array = file.squeeze()
-    
-#     #raster_array.close()
-#     #os.remove('./data_array.tif')
-    
-#     return(raster_array)
 
 def data_to_raster_NWP(data_array,lon,lat,path):
     xmin,ymin,xmax,ymax = [lon.min(),lat.min(),lon.max(),lat.max()]
@@ -211,64 +130,6 @@ def data_to_raster_NWP(data_array,lon,lat,path):
 
 #############################################################################
 #############################################################################
-
-
-# #os.chdir("C:/Users/olive/Desktop/Speciale/Kode/NWP750") # change directory to where the files are located!
-# NEA_file="./pygrib_functionality/pygrib_functionality/sNEA2104302103"
-# tst_nea=pygrib.open(NEA_file)
-# nea_param=tst_nea.read()
-# extracted_nea=read_parameter_info(nea_param,58)
-# extracted_nea['values']=remove_values_below(extracted_nea["values"],0.5)
-
-# with rasterio.open(NEA_file) as r:
-#      print(r.crs.to_proj4())
-
-# data_to_raster_NWP(np.repeat(1,len(extracted_nea['lats'])*len(extracted_nea['lats'][0])).reshape(1069,1189),extracted_nea['lons'],extracted_nea['lats'],"C:/Users/olive/Desktop/Speciale/Kode/nea_full.tif")
-
-# nea_lats=extracted_nea['lats'][255:455,535:692]
-# nea_lons=extracted_nea['lons'][255:455,535:692]
-
-# np.savetxt("./nea.csv",np.transpose(np.vstack((np.array((extracted_nea['lons'].flatten())),np.array(extracted_nea['lats'].flatten()),np.array(np.repeat(1,np.size(extracted_nea['lats'])))))),delimiter=",")
-# np.savetxt("./nea_cut.csv",np.transpose(np.vstack((np.array((nea_lons.flatten())),np.array(nea_lats.flatten()),np.array(np.repeat(1,np.size(nea_lats)))))),delimiter=",")
-
-#file_grib="./2021072612/00115"
-#file_grib="./2021072612/002"
-#pygrib_file = pygrib.open(file_grib)
-
-#parameter_list = pygrib_file.read()
-
-
-#extracted_field = read_parameter_info(parameter_list, 58) #either 13 or 29 if file is not an exact hour 
-#np.nanmax(extracted_field['values'])
-
-world_map_file = "C:/Users/olive/OneDrive/Desktop/Speciale/Kode/pygrib_functionality/pygrib_functionality/world_map_cut/world_map_background.shp" # file path to a shapefile with outline of Denmark
-
-
-#removal_threshold = 0.5 # when plotting, define this threshold to remove values below the threshold from the figure
-#extracted_field["values"] = remove_values_below(extracted_field["values"], removal_threshold)
-
-# make a plot!
-#coordinates=(7,15,54.5,58)
-#nwp_plot(extracted_nea['values'], extracted_nea['lons'], extracted_nea['lats'], "test",world_map_file,1,1)
-
-
-#Myfiles=[i for i in glob.glob("./2021072612/*") if len(i)<17]
-
-    
-#open_n_plot(Myfiles,0.5,world_map_file,coordinates)
-
-
-#frames=[]
-#imgs=glob.glob("./Pics/*.png")
-    
-
-#for i in imgs:
-#    new_frame=Image.open(i)
-#    frames.append(new_frame)
-    
-
-
-#imageio.mimsave('./Pics/png_to_gif.gif',frames,'GIF',duration=6)
 
 
 

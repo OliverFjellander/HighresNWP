@@ -11,25 +11,12 @@ import numpy as np
 
 #import h5py
 import matplotlib.pyplot as plt
-import matplotlib
-from matplotlib import colors
-import rasterio
-from rasterio.plot import show
-import rioxarray as rxr
+
 import geopandas as gpd
-from pyproj import Transformer
-from pyproj import CRS
 import glob
-import tifftools #For later when merging the tiff files
-from collections import defaultdict
-import imageio
-from pathlib import Path
-from osgeo import gdal,osr
-from matplotlib.animation import FuncAnimation
+
 import time
-from PIL import Image
-import shutil
-import re
+
 import pandas as pd
 import nwp750_read_plot
 import radar_data_handling
@@ -39,32 +26,10 @@ from nwp750_read_plot import *
 from radar_data_handling import *
 from ClimateGrid_handling import *
 from Other_functions import *
-import pygrib
-#from skimage.feature import peak_local_max
-import csv
-import pdb
-from sklearn.metrics import confusion_matrix
-from matplotlib.patches import Rectangle
-import pysteps
-import pysteps.verification.spatialscores as pvs
-import pysteps.verification.salscores as pvs_sal
-import pysteps.verification.probscores as pvs_prob
-import pysteps.feature.tstorm as pvs_tstorm
-from shapely.geometry import Point
-from shapely.geometry.polygon import Polygon
+
+import CRS
+import gzip
 import pickle
-#import xagg
-import collections
-from scipy.interpolate import griddata
-import rasterstats
-from rasterstats import zonal_stats
-from rasterio.warp import calculate_default_transform, reproject, Resampling
-from scipy.ndimage.filters import uniform_filter
-import xarray as xr
-from osgeo import osr
-from pygeoprocessing import zonal_statistics
-from skimage import data, io, filters
-from scipy.ndimage.measurements import center_of_mass
 start_start=time.time()
 
 ###########################################################################
@@ -94,8 +59,8 @@ lats_nwp=extracted_nwp_coor[1]['lats']
 
 Files_NEA=[i[-12:-4] for i in glob.glob("./25grid/NEA/*")] #what is available?
 
-#all_nwp=[i for i in glob.glob("./NWP750/pickled_data/pickled_data/*")]
-all_nwp=[i for i in glob.glob("./NWP750/pickled_data_4/*")]
+all_nwp=[i for i in glob.glob("./NWP750/pickled_data/pickled_data/*")]
+#all_nwp=[i for i in glob.glob("./NWP750/pickled_data_4/*")]
 Myfiles_nwp=[]
 for i in range(0,len(all_nwp)):
     if all_nwp[i][-15:-7] in Files_NEA:
@@ -103,14 +68,17 @@ for i in range(0,len(all_nwp)):
     else:
         pass
 
-for i in range(76,len(Myfiles_nwp)):
+f=gzip.open(Myfiles_nwp[2],'rb')
+df=pickle.load(f,encoding='bytes')
+f.close()
+
+for i in range(0,len(Myfiles_nwp)):
     start=time.time()
     file=Myfiles_nwp[i]
     save_name=Myfiles_nwp[i][-15:-7]
     f=gzip.open(file,'rb')
     df=pickle.load(f,encoding='bytes')
     f.close()
-    df=remove_values_below(df,0.5)
     df=df.transpose(2,0,1)
     start_zonal=time.time()
     zs=produce_zonalstat(df,lons_nwp,lats_nwp,file, "NWP")

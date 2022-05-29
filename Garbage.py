@@ -45,7 +45,9 @@ Created on Thu Mar 10 11:43:55 2022
 #np.nanmax(joined.groupby(['index_right']).mean())
 
 
-########################################
+#################################################
+#"""""""""""""CONFUSION MATRIX""""""""""""""""""#
+#################################################
 # def binary_to_confusion(rain_radar,rain_nwp):
 #     radar_outside=[]
 #     nwp_outside=[]
@@ -58,6 +60,55 @@ Created on Thu Mar 10 11:43:55 2022
 #         radar_outside.append(int((np.sum(radar_inside)>0)*1))
 #         nwp_outside.append(int((np.sum(nwp_inside)>0)*1))
 #     return confusion_matrix(np.array(nwp_outside),np.array(radar_outside))
+
+###########################
+
+# def confusion_mat(twod_radar,twod_nwp):
+#     #Confusion matrix [1,1]=TP (hits), [0,0]=TN (correct nulls), [0,1]=FP (false alarm) , [1,0]=FN (miss)
+#     cm_final=[np.array([[0,0],[0,0]],dtype=int) for _ in range(len(twod_radar))]
+#     ETS=[[] for _ in range(len(twod_radar))]
+#     PSS=[[] for _ in range(len(twod_radar))]
+#     FBI=[[] for _ in range(len(twod_radar))]
+#     TPR=[[] for _ in range(len(twod_radar))]
+#     TS=[[] for _ in range(len(twod_radar))]
+#     FPR=[[] for _ in range(len(twod_radar))]
+#     hits=[[] for _ in range(len(twod_radar))]
+#     misses=[[] for _ in range(len(twod_radar))]
+#     total=[[] for _ in range(len(twod_radar))]
+#     for i in range(len(twod_radar)):
+#         for j in range(len(twod_radar[i])):
+#             cm=confusion_matrix((twod_radar[i][j]>0)*1,(twod_nwp[i][j]>0)*1)
+#             if np.shape(cm)==(1,1):
+#                cm_final[i][0,0]=cm_final[i][0,0]+cm[0,0]
+#             else:    
+#                 cm_final[i]=cm_final[i]+cm
+#         a=cm_final[i][1,1]
+#         b=cm_final[i][0,1]
+#         c=cm_final[i][1,0]
+#         d=cm_final[i][0,0]
+#         a_ref=((a+b)*(a+c))/(a+b+c+d)
+#         ETS[i]=(a-a_ref)/((a-a_ref)+b+c)
+#         PSS[i]=((a*d)-(b*c))/((a+c)*(b+d))
+#         FBI[i]=(a+b)/(c+d)
+#         TPR[i]=a/(a+c)
+#         TS[i]=a/(a+c+b)
+#         FPR[i]=b/(b+d)
+#         hits[i]=a
+#         misses[i]=c
+#         total[i]=a+b+c+d
+#     return cm_final,ETS,PSS,FBI,TPR,TS,FPR,hits,misses,total
+
+##########################
+#Confusion matrix
+#cm_day,ETS,PSS,FBI,TPR,TS,FPR,hit,miss,tot=confusion_mat(rg_2d,nwp_2d)
+
+#plt.plot(hit)
+#plt.plot(miss)
+
+#plt.plot(np.arange(0,1.1,0.1),np.arange(0,1.1,0.1))
+#plt.scatter(FPR,TPR)
+#plt.xlim([0,1])
+#plt.ylim([0,1])
 
 
 ###########################################
@@ -572,3 +623,72 @@ Created on Thu Mar 10 11:43:55 2022
 
 ##########################################################################################################
 ############################################################################
+####Trying to find location parameter in SAL myself
+# loc_dict={'minref':3.0,'maxref':100,'minsize':1,'mindis':3,'minmax': 4,'mindiff':2}
+# pvs_sal._sal_l2_param(nwp_2d[4].transpose(1,0),radar_2d[4].transpose(1,0),thr_factor=None,thr_quantile=None,tstorm_kwargs=loc_dict)
+
+# l2_tst=[]
+# for i in range(0,len(radar_2d)):
+#     max_dis_tst=np.sqrt(((radar_2d[i].transpose(1,0).shape[0]) ** 2) + ((radar_2d[i].transpose(1,0).shape[1]) ** 2))
+#     obs_r=pvs_sal._sal_weighted_distance(nwp_2d[i].transpose(1,0),thr_factor=None,thr_quantile=None,tstorm_kwargs=loc_dict)/(np.nanmean(nwp_2d[i]))
+#     forc_r=pvs_sal._sal_weighted_distance(radar_2d[i].transpose(1,0),thr_factor=None,thr_quantile=None,tstorm_kwargs=loc_dict)/(np.nanmean(radar_2d[i]))
+#     print(2 * ((abs(obs_r - forc_r)) / max_dis_tst))
+#     l2_tst.append(2 * ((abs(obs_r - forc_r)) / max_dis_tst))
+    
+# l_sum=[np.nansum((x,y)) for x,y in zip(l1,l2_tst)]
+# l_sum=[np.nan if x==0 else x for x in l_sum]
+
+# plot_SAL(struc,amp,loca,save_name)
+##############################################################################
+##############################################################################
+# def produce_zonalstat(data_radar,radar_lons,radar_lats,files_radar,data_nwp,nwp_lon,nwp_lat,files_nwp):
+#     zs_radar=[]
+#     zs_nwp=[]
+#     for i in range(0,len(data_radar)):
+#         tif_path_nwp="./Tiff_files/"+files_nwp[i+1][-3:]+'_nwp'+'.tif'
+#         data_to_raster_NWP(data_nwp[i+1],nwp_lon,nwp_lat,tif_path_nwp)
+        
+#         tif_path_radar ="./Tiff_files/"+files_radar[i][0][-15:-5] + "_radar" + ".tif" # file path for a tif file that will be generated
+#         data_to_raster_RADAR(data_radar[i],radar_lons,radar_lats,tif_path_radar)
+#         print("done")
+#         #raster_radar=rasterio.open(tif_path_radar,masked=False)
+#         #raster_nwp=rasterio.open(tif_path_nwp,masked=False)
+        
+#         #start=time.time()
+#         zs_radar.append(zonal_statistics((tif_path_radar,1),"C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_DMI.shp",ignore_nodata=False,polygons_might_overlap=False))
+#         #zs_radar.append(zonal_statistics((tif_path_radar,1),"C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_northernzealand_DMI.shp",ignore_nodata=False,polygons_might_overlap=False))
+#         #print(time.time()-start)
+#         zs_nwp.append(zonal_statistics((tif_path_nwp,1),"C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_DMI_NWP.shp",ignore_nodata=False,polygons_might_overlap=False))
+#         #zs_nwp.append(zonal_statistics((tif_path_nwp,1),"C:/Users/olive/Desktop/Speciale/Dokumenter/Rain_observation_network/Rain_gauge_network/grid_northernzealand_nwp_DMI.shp",ignore_nodata=False,polygons_might_overlap=False))
+#         #print(time.time()-start) 
+#     return zs_radar,zs_nwp
+###########################################################################
+#############################################################################
+# def zone_to_2d(z_stat_radar,z_stat_nwp):
+#     radar_grid_2d=[[] for _ in range(len(z_stat_nwp))]
+#     nwp_grid_2d=[[] for _ in range(len(z_stat_radar))]
+#     for i in range(0,len(z_stat_radar)):
+#         radar_grid_2d[i]=np.reshape(extract_zonalstat(z_stat_radar[i],25),(125,157))
+#         nwp_grid_2d[i]=np.reshape(extract_zonalstat(z_stat_nwp[i],10),(125,157))
+#         #radar_grid_2d[i]=np.reshape(extract_zonalstat(z_stat_radar[i]),(49,40))
+#         #nwp_grid_2d[i]=np.reshape(extract_zonalstat(z_stat_nwp[i]),(49,40))
+#         radar_grid_2d[i][radar_grid_2d[i]==0]=np.nan
+#         nwp_grid_2d[i][nwp_grid_2d[i]==0]=np.nan
+#     return radar_grid_2d,nwp_grid_2d
+############################################################################
+################################################################################
+###############################################################################
+##Rain gauge
+# Myfiles_raingauge=[i for i in glob.glob("./Rain_gauge/Data/2021/%s/%s/%s_*.txt.gz"%(date_time[-6:-4],date_time[-4:-2],date_time[:-2])) if int(i[-11:-7])>int(date_time[-2:])*100 and int(i[-11:-7])<(int(date_time[-2:])*100+1000)]
+# df_raingauge=[open_gzip(i) for i in Myfiles_raingauge]
+# rainobs,rainobs_lons,rainobs_lats=raingauge_obs(Myfiles_raingauge)
+# # rainobs,rainobs_lons, rainobs_lats = raingauge_obs_orig(Myfiles_raingauge)
+
+# zs_raingauge=produce_zonalstat_rg(rainobs,rainobs_lons,rainobs_lats,Myfiles_raingauge)
+# rg_2d=zone_to_2d_raingauge(zs_raingauge)
+
+# #data_to_raster_rg(rainobs[0], rainobs_lons, rainobs_lats, "test_raingauge09.tif")
+
+# #raingauge_plot(rainobs[0],rainobs_lons,rainobs_lats,world_map_file,"test",Myfiles_raingauge)
+# raingauge_plot(rg_2d[0],grid_4326['xcoor'].values.reshape(156,184),grid_4326['ycoor'].values.reshape(156,184),world_map_file,"test",Myfiles_raingauge)
+

@@ -48,7 +48,7 @@ stationdata_2021=stationdata[stationdata['timeobs'].str.contains("2021")]
 
 stationdata_0726=stationdata_2021[stationdata_2021['timeobs'].str.contains("07-26")]
 peak_intensity=[]
-interest_list=["05-16","05-17","05-28","07-08","07-25","07-26","07-31","08-06","08-09","08-10","08-15","08-16","08-17","09-11","09-15"]
+interest_list=["05-07","05-13","05-16","05-17","05-21","05-22","05-23","05-27","05-28","06-02","07-08","07-19","07-25","07-26","07-29","07-31","08-01","08-05","08-06","08-09","08-10","08-11","08-14","08-15","08-16","08-17","08-27","09-11","09-12","09-15","09-21","10-10",]
 
 
 for i in range(0,len(interest_list)):
@@ -62,7 +62,7 @@ for i in range(0,len(interest_list)):
 
 
 
-def locate_pluvial_extremes_days_per_station(stationdata_df, rain_threshold, time_window, longterm_saturation=False):
+def locate_pluvial_extremes_days_per_station(stationdata_df, rain_threshold, time_window):
     
     unique_station_ids = stationdata_df["statid"].unique()
     
@@ -74,15 +74,8 @@ def locate_pluvial_extremes_days_per_station(stationdata_df, rain_threshold, tim
         # check if accumulated precipitation exceeds the user-specified threshold
         temp_df = stationdata_df[stationdata_df["statid"] == station]
         temp_df["rolling_sum"] = temp_df["precipitation_sum"].rolling(time_window).sum()
-        if longterm_saturation==True:
-            temp_df["rolling_24h_sum"] = temp_df["precipitation_sum"].rolling(24).sum()
-            temp_df["rolling_dailymax"] = temp_df["rolling_24h_sum"].rolling(time_window).max()
-            temp_df["maxsum_ratio"] = temp_df["rolling_dailymax"]/temp_df["rolling_sum"]
-            
+
         temp_cloudbursts = temp_df[temp_df["rolling_sum"] >= rain_threshold]
-        
-        if longterm_saturation==True:
-            temp_cloudbursts = temp_df[(temp_df["rolling_sum"] >= rain_threshold) * (temp_df["maxsum_ratio"] < 0.167)]
         
         temp_cloudburst_days = temp_cloudbursts["timeobs"].str[:16]
         temp_cloudburst_days = temp_cloudburst_days.drop_duplicates()
@@ -103,13 +96,26 @@ def locate_pluvial_extremes_days_per_station(stationdata_df, rain_threshold, tim
 
 # days with cloudbursts. Here defined as 15mm / 1 hour, since the smallest time steps in the data are 1 hour,
 # and I thus can't check for the standard cloudburst definition (15mm / 30 minutes)
-cloudburst_days_2011_2021 = locate_pluvial_extremes_days_per_station(stationdata_2021, 15, 1)
+cloudburst_days = locate_pluvial_extremes_days_per_station(stationdata_2021, 15, 1)
 
-np.savetxt("./cloudburstdays.txt",np.array(cloudburst_days_2011_2021['timeobs']),fmt='%s')
+#np.savetxt("./cloudburstdays.txt",np.array(cloudburst_days['timeobs']),fmt='%s')
 
 # days with "severe rain" (Danish: "kraftig regn") with DMI's standard definition of 24mm over 6 hours.
-severerain_days_2011_2021 = locate_pluvial_extremes_days_per_station(stationdata_2021, 24, 6)
-np.savetxt("./severedays.txt",np.array(severerain_days_2011_2021['timeobs']),fmt='%s')
+severerain_days = locate_pluvial_extremes_days_per_station(stationdata_2021, 24, 6)
+
+extreme_rain=np.unique(np.concatenate((cloudburst_days['timeobs'],severerain_days['timeobs'])))
+
+
+rainy_days=locate_pluvial_extremes_days_per_station(stationdata_2021, 5, 1)
+rainy_days=[x for x in rainy_days['timeobs'] if x not in extreme_rain]
+
+
+
+#np.savetxt("./severedays.txt",np.array(severerain_days['timeobs']),fmt='%s')
+np.savetxt("./extremerain.txt",np.array(severerain_days['timeobs']),fmt='%s')
+np.savetxt("./rainydays.txt",np.array(rainy_days),fmt='%s')
+
+
 
 
 ##########################################################################
@@ -163,8 +169,8 @@ def add_station_metadata(cloudburst_days_df, metadata_df):
     return(cloudburst_days_df)
 
 
-cloudburst_days_2011_2021 = add_station_metadata(cloudburst_days_2011_2021, metadata)
-severerain_days_2011_2021 = add_station_metadata(severerain_days_2011_2021, metadata)
+cloudburst_days_2011_2021 = add_station_metadata(cloudburst_days, metadata)
+severerain_days_2011_2021 = add_station_metadata(severerain_days, metadata)
 
 
 def datesfind(extreme_rain_data):
@@ -178,8 +184,6 @@ def datesfind(extreme_rain_data):
         
 cloudburst_list=np.unique(datesfind(cloudburst_days_2011_2021['timeobs']))
 severerain_list=np.unique(datesfind(severerain_days_2011_2021['timeobs']))
-
-
 
 
 
@@ -263,12 +267,6 @@ with matplotlib.backends.backend_pdf.PdfPages("./Cloudbursts_Severerain_days_201
         
         print(i)
      
-    
-
-
-
-print("Time gone:",time.time()-start)
-
 
 #histogram
 base=severerain_days_2011_2021.iloc[0]['timeobs']
@@ -287,9 +285,6 @@ def to_datetime(data,formatting):
 datetime_radar=to_datetime(radar_data,"%y%m%d")
 datetime_nwp=to_datetime(nwp_data,"%y%m%d")
     
-#plt.bar(datetime_precipitation,np.repeat(1,len(datetime_precipitation)),color="red")
-#plt.bar(datetime_radar,np.repeat(1,len(datetime_precipitation)),color="blue")
-
 def dates_for_plot(data):
     dates=[]
     for i in range(0,len((data))):

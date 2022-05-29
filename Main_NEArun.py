@@ -10,27 +10,10 @@ os.chdir("C:/Users/olive/Desktop/Speciale/Kode/Scripts") # change directory to w
 import numpy as np
 
 #import h5py
-import matplotlib.pyplot as plt
-import matplotlib
-from matplotlib import colors
-import rasterio
-from rasterio.plot import show
-import rioxarray as rxr
-import geopandas as gpd
-from pyproj import Transformer
 from pyproj import CRS
 import glob
-import tifftools #For later when merging the tiff files
-from collections import defaultdict
-import imageio
-from pathlib import Path
-from osgeo import gdal,osr
-from matplotlib.animation import FuncAnimation
-import time
-from PIL import Image
-import shutil
-import re
-import pandas as pd
+import gzip
+
 import nwp750_read_plot
 import radar_data_handling
 import ClimateGrid_handling
@@ -40,32 +23,8 @@ from radar_data_handling import *
 from ClimateGrid_handling import *
 from Other_functions import *
 import pygrib
-#from skimage.feature import peak_local_max
-import csv
-import pdb
-from sklearn.metrics import confusion_matrix
-from matplotlib.patches import Rectangle
-import pysteps
-import pysteps.verification.spatialscores as pvs
-import pysteps.verification.salscores as pvs_sal
-import pysteps.verification.probscores as pvs_prob
-import pysteps.feature.tstorm as pvs_tstorm
-from shapely.geometry import Point
-from shapely.geometry.polygon import Polygon
+
 import pickle
-#import xagg
-import collections
-from scipy.interpolate import griddata
-import rasterstats
-from rasterstats import zonal_stats
-from rasterio.warp import calculate_default_transform, reproject, Resampling
-from scipy.ndimage.filters import uniform_filter
-import xarray as xr
-from osgeo import osr
-from pygeoprocessing import zonal_statistics
-from skimage import data, io, filters
-from scipy.ndimage.measurements import center_of_mass
-start_start=time.time()
 
 ###########################################################################
 ###########################################################################
@@ -94,6 +53,10 @@ tst_nea=pygrib.open(NEA_file)
 nea_param=tst_nea.read()
 extracted_nea=read_parameter_info(nea_param,58)
 extracted_nea['values']=remove_values_below(extracted_nea["values"],0.5)
+#nea_lats=extracted_nea['lats']
+#nea_lons=extracted_nea['lons']
+#np.savetxt("./nea.csv",np.transpose(np.vstack((np.array((nea_lons.flatten())),np.array(nea_lats.flatten()),np.array(np.repeat(1,np.size(nea_lons)))))),delimiter=",")
+
 nea_lats=extracted_nea['lats'][255:455,535:692]
 nea_lons=extracted_nea['lons'][255:455,535:692]
 
@@ -104,7 +67,6 @@ for i in range(35,len(Myfiles_nwp)):
     loaded=pickle.load(f,encoding='bytes')
     f.close()
 
-    loaded=remove_values_below(loaded,0.5)
     df=loaded.transpose(2,0,1)
     
     zs=produce_zonalstat(df,nea_lons,nea_lats,Myfiles_nwp[i],"NWP25")

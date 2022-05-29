@@ -12,8 +12,7 @@ import pandas as pd
 import glob
 import pickle
 import gzip
-import shutil
-import matplotlib.pyplot as plt
+
 
 os.chdir("C:/Users/olive/Desktop/Speciale/Kode") # change directory to where the files are located!
 ########################functions###############################
