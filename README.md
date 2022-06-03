@@ -43,7 +43,7 @@ Ten Python scripts have been used for this study, though this could have been li
 ### Get started
 * Clone the repo
    ```sh
-   git clone https://github.com/OliverFjellander/HighresNWP
+   git clone https://github.com/OliverFjellander/HighresNWP.git
    ```
 * Install required modules
   ```sh
