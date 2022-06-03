@@ -45,7 +45,6 @@ There is a potential for using DK750 in the operational cloudburst warning syste
   ```sh
   pip install -r requirements.txt
   ```
-* More steps?
 
 ## Contact
 Oliver Hede Fjellander - oliverfjellander@gmail.com
