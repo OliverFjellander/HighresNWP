@@ -59,35 +59,35 @@ The first three scripts have been provided by DMI and vary in what has been chan
 -	“produce_zonalstat_radar”. Produces zonal statistics by producing a raster image before comparing that to the common grid. 
 -	“radar_plot_all_events”. Used to plot the 15 events used in this study. The function is a modification “radar_plot” but allows several subfigures to appear. This plot can be found in the thesis.
 
-The following three scripts has been used to produce data for all sources in the common 2.5x2.5km grid. These could probably have been done in one, but due to the longevity of making zonal statistics all several months of minute/hourly data, this was done one-by-one. These does not contain any functions, but instead runs functions from the other scripts.
+The following three scripts has been used to produce data for all sources in the common 2.5x2.5km grid. These could probably have been done in one, but due to the longevity of making zonal statistics all several months of minute/hourly data, this was done one-by-one. These does not contain any functions, but instead runs functions from the other scripts. <br>
 (3) “nwp750_read_plot.py” Was initially given by DMI to ease the process of extracting the necessary NWP data. The following scripts remain unchanged
 - “read_parameter_info”. Extracts forecast and coordinates values among many other parameters that the model predicts.
 - “Output_rain_NWP”. Opens the files given and extracts the necessary data given that it is parameter 58 that is of interest
-- “nwp_plot” Plots the gridded NWP data over a map of data similar to the “radar_plot” function.
+- “nwp_plot” Plots the gridded NWP data over a map of data similar to the “radar_plot” function. <br>
 - 
 (3 – continued) these have been worked out by me with some basis in similar functions
 -	“data_to_raster_NWP”. Similar to the “Data_to_raster_RADAR” file but with another projection, thereby not using a proj4-string.
--	“unaccumulate”. Automatizes opening several files and returning their precipitation values in hourly rainfall intensities.
+-	“unaccumulate”. Automatizes opening several files and returning their precipitation values in hourly rainfall intensities. <br>
 
-The remaining script have been produced by me
-(4) “Main_radarrun.py”
-Is used to aggregate the given radar data into hourly rainfall estimates with a horizontal resolution of 2.5x2.5km. This also means not producing files for days where there is missing data. 
-(5) “Main_NWPrun.py”
-Is used to aggregate the given DK750 data into hourly rainfall estimates with a horizontal resolution of 2.5x2.5km. This is done by seeing what NEA data is available, since the need to have the same time of forecast to be useful.
-(6) “Main_NEArun.py”
-Get the data within its’ own grid using zonal statistics like the others to ease the process.
-(7) “plotting_functions.py”
-“plot_together”. Plots two different data sources with their respective coordinates in a side-by-side view.
+The remaining script have been produced by me <br>
+(4) “Main_radarrun.py” <br>
+Is used to aggregate the given radar data into hourly rainfall estimates with a horizontal resolution of 2.5x2.5km. This also means not producing files for days where there is missing data. <br>
+(5) “Main_NWPrun.py” <br>
+Is used to aggregate the given DK750 data into hourly rainfall estimates with a horizontal resolution of 2.5x2.5km. This is done by seeing what NEA data is available, since the need to have the same time of forecast to be useful. <br>
+(6) “Main_NEArun.py” <br>
+Get the data within its’ own grid using zonal statistics like the others to ease the process. <br>
+(7) “plotting_functions.py” <br>
+“plot_together”. Plots two different data sources with their respective coordinates in a side-by-side view. <br>
 “plot_all”. Used to plot the radar product together with the two NWP products in a side-by-side view
-“plot_3x3”. Plots used for example plots used in this thesis. Takes three different data sources and 3 different lead times.
-(8) “Other_functions.py” 
+“plot_3x3”. Plots used for example plots used in this thesis. Takes three different data sources and 3 different lead times. <br>
+(8) “Other_functions.py” <br>
 - “precipitation_events”. Needs an input of dates and time where a rain gauge had an exceedance of a given threshold. This function compares which exceedance times that overlap with the available time of forecasts the NWP products
 -  “produce_zonalstat”. Produces zonal statistics depending on which data type was used as input. This is done as the method for producing a raster I different among the files and their projection is also different meaning different projections of the common grid is also needed.
 - “extract_zonalstat”. The zonal statistics form above is formatted in a dictionary, and a non-constant number of gridcells fit inside the common grid meaning that the sum should be divided with the count of cells which is available in this dictionary.
 - “zone-to_2d”. The zonal statistics are reshaped to fit the common grid.
 “produce_gifs”. Produces several pictures using “plot_all” plotting function across multiple dates where matching of radar and NWP products has been made.
-- “make_gif”. Produces gifs by collecting photos in an input-path into a duration of choice
-(9) “Verification.py”
+- “make_gif”. Produces gifs by collecting photos in an input-path into a duration of choice. <br>
+(9) “Verification.py”<br>
 “Fractional_skillscore” is the calculation of FSS depending on if it is an intensity of percentile that has been given.
 “Spatial_threshold_matrix”. Inputs a scale of scale and intensity to the function above. This is used for the function below.
 “produce_FSS_matrix”. Plots a matrix form series of FSS calculations one an intensity / scale view used in this thesis with a range of dates for different models.
@@ -101,9 +101,9 @@ Get the data within its’ own grid using zonal statistics like the others to ea
 “produce_SAL”. Finds structure, amplitude and Location components for a observed and predicted 2d field.
 “plot_SAL” Plots the finding from the previous function. The result can be seen in the thesis.
 “SAL_output”. Produces and plots SAL across multiple dates as input. 
-“plot_SAL_l”. Plot the l component together with another component to see that visually.
+“plot_SAL_l”. Plot the l component together with another component to see that visually.<br>
 
-(10) “Main.py”
+(10) “Main.py”<br>
 This script does not contain any functions but is merely from here that testing and using of the functions from the other scripts has happened. Within here, some calculations has also been made for use in the thesis. This also includes some hard-coding in order to produce plots to the report of chosen examples. 
 
 
