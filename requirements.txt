@@ -1,21 +1,16 @@
-Bisect
-Collections
 CRS
-csv
 gdp
 geopandas
-glob
-gzip
-image
+glob2
 imageio
 Matplotlib
 numpy
-os
 pandas
-pickle
 pygeoprocessing
 pygrib
 pyproj
 pysteps
 tifftools
-time
+
+#Further packages used included in the scripts that are included in the Python standard library: bisect, collections, CSV, gzip, os, pickle, PIL and time
+
