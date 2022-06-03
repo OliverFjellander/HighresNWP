@@ -74,23 +74,28 @@ The first three scripts have been provided by DMI and vary in what has been chan
 <br><i> The remaining script have been produced by me </i><br>
 
 <li> <b>“Main_radarrun.py” </b>
-The script is used to aggregate the given radar data into hourly rainfall estimates with a horizontal resolution of 2.5x2.5km. This also means not producing files for days where there is missing data. </li>
+The script is used to aggregate the given radar data into hourly rainfall estimates with a horizontal resolution of 2.5x2.5km. This also means not producing files for days where there is missing data. </li><br>
+
 <li><b>“Main_NWPrun.py” </b>
-Is used to aggregate the given DK750 data into hourly rainfall estimates with a horizontal resolution of 2.5x2.5km. This is done by seeing what NEA data is available, since the need to have the same time of forecast to be useful. </li> <br> <br>
+Is used to aggregate the given DK750 data into hourly rainfall estimates with a horizontal resolution of 2.5x2.5km. This is done by seeing what NEA data is available, since the need to have the same time of forecast to be useful. </li><br>
+
 <li> <b>“Main_NEArun.py” </b><br>
-Get the data within its’ own grid using zonal statistics like the others to ease the process.  </li>
+Get the data within its’ own grid using zonal statistics like the others to ease the process.  </li><br>
+
 <li> <b>“plotting_functions.py”</b> <br>
-<ul><li>“plot_together”. Plots two different data sources with their respective coordinates in a side-by-side view. </li> <br>
+<ul><li>“plot_together”. Plots two different data sources with their respective coordinates in a side-by-side view. </li>
 <li>“plot_all”. Used to plot the radar product together with the two NWP products in a side-by-side view. </li>
-<li>“plot_3x3”. Plots used for example plots used in this thesis. Takes three different data sources and 3 different lead times. </li></ul><br> <br>
+<li>“plot_3x3”. Plots used for example plots used in this thesis. Takes three different data sources and 3 different lead times. </li></ul><br>
+  
 <li> <b>“Other_functions.py” </b><br>
 <ul><li> “precipitation_events”. Needs an input of dates and time where a rain gauge had an exceedance of a given threshold. This function compares which exceedance times that overlap with the available time of forecasts the NWP products.  </li>
 <li>“produce_zonalstat”. Produces zonal statistics depending on which data type was used as input. This is done as the method for producing a raster I different among the files and their projection is also different meaning different projections of the common grid is also needed.  </li>
 <li>“extract_zonalstat”. The zonal statistics form above is formatted in a dictionary, and a non-constant number of gridcells fit inside the common grid meaning that the sum should be divided with the count of cells which is available in this dictionary.  </li>
   <li>“zone-to_2d”. The zonal statistics are reshaped to fit the common grid.  </li>
 <li> “produce_gifs”. Produces several pictures using “plot_all” plotting function across multiple dates where matching of radar and NWP products has been made.</li>
-<li>“make_gif”. Produces gifs by collecting photos in an input-path into a duration of choice. </li> </ul>
- <li> <b>“Verification.py”</b>
+<li>“make_gif”. Produces gifs by collecting photos in an input-path into a duration of choice. </li> </ul><br>
+  
+ <li> <b>“Verification.py”</b><br>
 <ul><li>“Fractional_skillscore” is the calculation of FSS depending on if it is an intensity of percentile that has been given. </li>
 <li>“Spatial_threshold_matrix”. Inputs a scale of scale and intensity to the function above. This is used for the function below. </li>
 <li>“produce_FSS_matrix”. Plots a matrix form series of FSS calculations one an intensity / scale view used in this thesis with a range of dates for different models.</li>
@@ -104,11 +109,13 @@ Get the data within its’ own grid using zonal statistics like the others to ea
 <li>“produce_SAL”. Finds structure, amplitude and Location components for a observed and predicted 2d field.</li>
 <li>“plot_SAL” Plots the finding from the previous function. The result can be seen in the thesis.</li>
 <li>“SAL_output”. Produces and plots SAL across multiple dates as input. </li>
-<li>“plot_SAL_l”. Plot the l component together with another component to see that visually.</li></ul>
+<li>“plot_SAL_l”. Plot the l component together with another component to see that visually.</li></ul><br>
+   
 <li> <b> “Main.py”</b><br>
-This script does not contain any functions but is merely from here that testing and using of the functions from the other scripts has happened. Within here, some calculations has also been made for use in the thesis. This also includes some hard-coding in order to produce plots to the report of chosen examples. 
+This script does not contain any functions but is merely from here that testing and using of the functions from the other scripts has happened. Within here, some calculations has also been made for use in the thesis. This also includes some hard-coding in order to produce plots to the report of chosen examples. <br>
 
 </ol>
+
 ### Get started
 * Clone the repo
    ```sh
