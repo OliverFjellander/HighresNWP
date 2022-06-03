@@ -133,5 +133,6 @@ Oliver Hede Fjellander - oliverfjellander@gmail.com
 This thesis has fulfilled my personal objective to get involved in a programming-centered project. I want to thank my supervisor Jonas Weid Pedersen, who has guided me daily with everything from discussing proper methods and graphical output to inviting me into a friendly and curious atmosphere at DMI. Thank you to Peter Steen Mikkelsen for his role of both being a first-time listener and questioning ongoing findings and giving valuable perspectives to the project.
 For the last half of the project, I had the pleasure of sharing everyday life with employees in the Hydrology and Flooding department at DMI. It was a tremendous relief to be among dedicated and friendly people again. Altogether, I felt like part of a team, and they showed a sincere interest in my project. I would especially like to thank Xiaohua Yang from Research and Development at DMI, who had essential input to my project. Since he assisted in developing the experimental NWP product investigated in this thesis, personal communication with him is a source due to the limited official documentation. 
 <br>
+
 Thank you to Kiri Koppelgaard, who has spent several afternoons and evenings reading, commenting, and proofreading parts of this thesis. This altogether made this thesis much more readable.
 
