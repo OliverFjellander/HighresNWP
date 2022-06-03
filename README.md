@@ -19,7 +19,7 @@
 
 This thesis was written by Oliver Hede Fjellander as a fulfillment of the M.Sc. degree in Environmental Engineering at the Technical University of Denmark (DTU). The work consisted of 30 ECTS points conducted from the 3th of January, 2022, until the 3rd of June, 2022. The project was supervised by industrial postdoc Jonas Weid Pedersen at Danish Meteorological Institute (DMI) and DTU environment together with Professor Peter Steen Mikkelsen from DTU environment. Thus, the project is a collaboration between DTU Environment and DMI.
 
-### Abstract
+## Abstract
 DMI and other national and international meteorological institutions use numerical weather prediction (NWP) models to predict precipitation. However, these models tend to misplace or even miss cloudbursts and extreme precipitation events. During the last decades, research on increasing grid resolution of NWP models are investigated as these models might improve the realism of forecasts.
 <br>
 <br>
@@ -35,6 +35,10 @@ Results indicate an improved forecast for most extreme rainfall events investiga
 There is a potential for using DK750 in the operational cloudburst warning system, where the most considerable potential is seen for smaller and more spread precipitation fields. NEA appears to be more constant in skill across all lead times, suggesting that the largest potential for using DK750 is within a nowcast horizon. Focus on the future should improve spatial skills further and improve forecasts of small and intense precipitation cells.
 <br>
 <br>
+
+## Content
+Ten Python scripts have been used for this study, though this could have been limited. These are divided into whether the basis of them were provided by DMI or not, though these are strongly interconnected.
+
 
 ### Get started
 * Clone the repo
